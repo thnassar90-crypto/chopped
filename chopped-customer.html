@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Chopped — اطلب الآن</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f5f0e8;color:#2C1810}
+button,input,select{font-family:inherit;cursor:pointer}
+input{cursor:text}
+::-webkit-scrollbar{height:4px;width:4px}
+::-webkit-scrollbar-thumb{background:#d4c4a0;border-radius:4px}
+#header{background:linear-gradient(135deg,#2C1810,#5C2D0E);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+#header h1{color:#fff;font-size:16px;font-weight:700}
+#header p{color:#D4A574;font-size:11px;margin-top:2px}
+#lang-toggle{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:4px;display:flex;gap:2px}
+.lang-btn{padding:4px 10px;border-radius:16px;font-size:12px;border:none;background:transparent;color:rgba(255,255,255,0.7)}
+.lang-btn.active{background:#fff;color:#2C1810;font-weight:600}
+#content{padding:14px;max-width:700px;margin:0 auto}
+.card{background:#fff;border:1px solid #e8e0d0;border-radius:12px;padding:14px;margin-bottom:10px}
+.alert{background:#FFF3CD;border:1px solid #FFC107;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#856404}
+#search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e8e0d0;border-radius:12px;padding:10px 14px;margin-bottom:12px}
+#search-input{border:none;background:transparent;font-size:14px;outline:none;flex:1;color:#2C1810}
+#clear-search{border:none;background:none;font-size:20px;color:#8B7355;line-height:1}
+#cat-row{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px}
+.cat-pill{padding:6px 12px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid #d4c4a0;background:#fff;color:#5C2D0E;white-space:nowrap;flex-shrink:0;transition:all 0.15s}
+.cat-pill.active{background:#5C2D0E;color:#fff;border-color:#5C2D0E}
+.menu-item{background:#fff;border:1px solid #e8e0d0;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.item-cat{font-size:10px;color:#D4A574;margin-bottom:2px}
+.item-name{font-size:13px;font-weight:500;color:#2C1810}
+.item-price{font-size:14px;font-weight:700;color:#5C2D0E;margin-top:2px}
+.add-btn{width:34px;height:34px;border-radius:50%;background:#5C2D0E;border:none;color:#fff;font-size:22px;line-height:1;flex-shrink:0}
+.qty-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.qty-btn{width:30px;height:30px;border-radius:50%;border:1px solid #d4c4a0;background:#f5f0e8;color:#2C1810;font-size:18px;line-height:1}
+.qty-num{font-size:15px;font-weight:700;min-width:20px;text-align:center}
+#cart-bar{position:sticky;bottom:0;background:#5C2D0E;padding:14px 16px;display:none;align-items:center;justify-content:space-between;border-radius:16px 16px 0 0;margin:0 -14px -14px}
+#cart-bar.visible{display:flex}
+#cart-count{color:rgba(255,255,255,0.7);font-size:12px}
+#cart-total{color:#fff;font-size:18px;font-weight:700}
+#wa-btn{background:#25D366;color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:14px;font-weight:600}
+.input-label{font-size:12px;color:#8B7355;margin-bottom:6px}
+.text-input{width:100%;padding:10px 12px;border:1px solid #d4c4a0;border-radius:8px;font-size:14px;background:#faf7f2;outline:none}
+.text-input:focus{border-color:#5C2D0E}
+.empty{text-align:center;padding:40px 20px;color:#8B7355;font-size:14px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:12px;font-weight:600;font-size:14px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.25);white-space:nowrap;display:none;pointer-events:none}
+#toast.show{display:block}
+#toast.ok{background:#22c55e;color:#fff}
+#toast.err{background:#ef4444;color:#fff}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>🥩 Chopped — شوبد</h1>
+    <p>اطلب الآن • Order Now</p>
+  </div>
+  <div id="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('ar')">ع</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
+  </div>
+</div>
+
+<div id="content"></div>
+
+<div id="cart-bar">
+  <div>
+    <div id="cart-count">0 صنف</div>
+    <div id="cart-total">0.00 ر.س</div>
+  </div>
+  <button id="wa-btn" onclick="sendOrder()">📱 إرسال الطلب</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var SUPABASE_URL = "https://qkdttgcfxapmbonhftuu.supabase.co";
+var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrZHR0Z2NmeGFwbWJvbmhmdHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MTQ5MjIsImV4cCI6MjA5NzA5MDkyMn0.5p477GpYcdBZZ5Gf2v5T5XdMKjVA_8NKg2NtWf6qq-U";
+var WA_NUMBER = "966558927634";
+var IS_CONFIGURED = true;
+
+async function supabaseInsert(table, data) {
+  var r = await fetch(SUPABASE_URL + "/rest/v1/" + table, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Prefer": "return=representation"
+    },
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error("Supabase error: " + r.status);
+  return await r.json();
+}
+
+var CATEGORIES = [
+  {id:"daily",ar:"الطبخ اليومي",en:"Daily Cooking",emoji:"🍖"},
+  {id:"chicken",ar:"دجاج كامل وقطع",en:"Whole Chicken & Cuts",emoji:"🍗"},
+  {id:"bbq",ar:"باربيكيو",en:"BBQ",emoji:"🔥"},
+  {id:"steaks",ar:"ستيك وروست",en:"Steaks & Roasts",emoji:"🥩"},
+  {id:"burgers",ar:"برغر وسجق",en:"Burgers & Sausages",emoji:"🍔"},
+  {id:"bread",ar:"خبز",en:"Bread",emoji:"🍞"},
+  {id:"readycook",ar:"جاهز للطبخ",en:"Ready to Cook",emoji:"🫕"},
+  {id:"cheese",ar:"جبن وبارد",en:"Cheese & Cold Cuts",emoji:"🧀"},
+  {id:"pasta",ar:"باستا وصوص",en:"Pasta & Sauces",emoji:"🍝"},
+  {id:"grocery",ar:"بقالة ومجمد",en:"Grocery & Frozen",emoji:"🛒"},
+  {id:"salt",ar:"ملح",en:"Salt",emoji:"🧂"},
+  {id:"burgerbox",ar:"صناديق برغر",en:"Burger Boxes",emoji:"📦"}
+];
+
+var MENU = [
+  {id:1,name:"Mince Beef per 250gr",price:18.75,cat:"daily"},{id:2,name:"Extra Lean Mince Beef per 250gr",price:26.25,cat:"daily"},{id:3,name:"Beef Cubes for Cooking per 250gr",price:22.48,cat:"daily"},{id:4,name:"Lamb Pcs for Manasaf (Bone in) per 500gr",price:32.50,cat:"daily"},{id:5,name:"Beef Strips / Straganoff per 250gr",price:22.48,cat:"daily"},{id:6,name:"Kubbeh with Borgol per 500gr",price:31.50,cat:"daily"},{id:7,name:"Traditional Kofta for Oven per 500gr",price:39.00,cat:"daily"},{id:8,name:"Australian Bone in Lamb Leg per 500gr",price:33.50,cat:"daily"},{id:9,name:"Australian Boneless Lamb Cubes per 500gr",price:46.00,cat:"daily"},{id:10,name:"Australian Bone in Lamb Shoulder per 500gr",price:32.50,cat:"daily"},
+  {id:11,name:"Astra Whole Fresh Chicken 1100gr",price:20.00,cat:"chicken"},{id:12,name:"Astra Whole Fresh Chicken 1200gr",price:21.00,cat:"chicken"},{id:13,name:"Astra Chicken Breast Bone in 500g",price:12.00,cat:"chicken"},{id:14,name:"Astra Chicken Breast Boneless 450g",price:22.50,cat:"chicken"},{id:15,name:"Astra Chicken Whole Leg 500g",price:12.00,cat:"chicken"},{id:16,name:"Astra Chicken Drumsticks 500g",price:12.00,cat:"chicken"},{id:17,name:"Astra Chicken Thigh Bone in 500g",price:8.70,cat:"chicken"},{id:18,name:"Astra Chicken Wings 500g",price:7.00,cat:"chicken"},{id:19,name:"Astra Fresh Quails 600g Tray",price:26.00,cat:"chicken"},{id:20,name:"Chickens Minced per 250gr",price:11.00,cat:"chicken"},{id:21,name:"Marinated Chicken Stir Fry KG",price:63.50,cat:"chicken"},{id:22,name:"Fresh Chicken Kabab per 500gr",price:32.50,cat:"chicken"},{id:23,name:"Marinated Chicken For Oven",price:33.00,cat:"chicken"},{id:24,name:"Fresh Chicken Kiev KG",price:70.00,cat:"chicken"},
+  {id:25,name:"Lamb Fillet Cubes for BBQ Skewers per 500gr",price:74.50,cat:"bbq"},{id:26,name:"Chopped Kebab Skewer per 500gr",price:39.00,cat:"bbq"},{id:27,name:"Chopped Shish Tawooq Skewers per 500gr",price:37.50,cat:"bbq"},{id:28,name:"Shish Tawouq with Thyme & Garlic per 500gr",price:37.50,cat:"bbq"},{id:29,name:"Hot & Smokey Shish Tawouq Skewers per 500gr",price:37.50,cat:"bbq"},{id:30,name:"Boneless Chicken Breast Marinated for BBQ per 500gr",price:37.50,cat:"bbq"},{id:31,name:"Chicken Drumsticks Marinated for BBQ per 500gr",price:21.00,cat:"bbq"},{id:32,name:"Buffalo Chicken Wings per 500gr",price:24.00,cat:"bbq"},{id:33,name:"BBQ For Quails Fresh 500gr",price:34.50,cat:"bbq"},{id:34,name:"Chilled Lamb Tenderloin per 500gr",price:74.50,cat:"bbq"},{id:35,name:"Whole Chicken B-Less For BBQ",price:55.00,cat:"bbq"},{id:36,name:"Whole Chicken For BBQ",price:35.00,cat:"bbq"},{id:37,name:"Herb & Butter Chicken Skewers per 500gr",price:37.50,cat:"bbq"},{id:38,name:"Pepper & Mustard Chicken Skewers 500gr",price:37.50,cat:"bbq"},{id:39,name:"Turkish Kebab per 500gr",price:64.50,cat:"bbq"},{id:40,name:"Chopped Lamb Kofta per 500gr",price:39.00,cat:"bbq"},{id:41,name:"Kofta Dough per 500gr",price:39.00,cat:"bbq"},{id:42,name:"BBQ Chicken Wings per 500gr",price:13.00,cat:"bbq"},{id:43,name:"Naemi Lamb Shortloin B/In per 500gr",price:65.00,cat:"bbq"},{id:44,name:"Naemi Lamb Neck per 500gr",price:64.00,cat:"bbq"},{id:45,name:"Naemi Lamb Breast Ribs per 500gr",price:64.00,cat:"bbq"},{id:46,name:"Naemi Lamb Leg B/Less per 500gr",price:75.00,cat:"bbq"},{id:47,name:"Naemi Lamb Mince per 250gr",price:37.50,cat:"bbq"},
+  {id:48,name:"Aust Angus Grain Fed Tenderloin Whole KG",price:287.00,cat:"steaks"},{id:49,name:"Aust Angus Grain Fed Tenderloin Portion 500gr",price:180.00,cat:"steaks"},{id:50,name:"Aust Angus Grain Fed Beef Striploin per 500gr",price:106.50,cat:"steaks"},{id:51,name:"Aust Angus Grain Fed Rib Eye per 500gr",price:122.50,cat:"steaks"},{id:52,name:"Aust Angus Grain Fed Short Ribs per 500gr",price:70.50,cat:"steaks"},{id:53,name:"MBS 4-5 Wagyu Beef Tenderloin Whole per kilo",price:515.00,cat:"steaks"},{id:54,name:"MBS 4-5 Wagyu Beef Tenderloin Portion 500gr",price:357.50,cat:"steaks"},{id:55,name:"MBS 4-5 Wagyu Beef Striploin per 500gr",price:204.50,cat:"steaks"},{id:56,name:"MBS 4-5 Wagyu Beef Rib Eye per 500gr",price:214.50,cat:"steaks"},{id:57,name:"MBS 4-5 Wagyu Beef Flap Meat per 500gr",price:137.50,cat:"steaks"},{id:58,name:"MBS 4-5 Wagyu Beef Pichana Steaks per 500gr",price:137.50,cat:"steaks"},{id:59,name:"MBS 4-5 Wagyu Beef Flat Iron Steak per 500gr",price:134.50,cat:"steaks"},{id:60,name:"Aust Black Angus Grain Fed Tenderloin Whole KG",price:299.00,cat:"steaks"},{id:61,name:"Aust Black Angus Tenderloin Portion 500gr",price:190.00,cat:"steaks"},{id:62,name:"Aust Black Angus Grain Fed Beef Striploin 500gr",price:109.50,cat:"steaks"},{id:63,name:"Aust Black Angus Grain Fed Rib Eye 500gr",price:135.00,cat:"steaks"},{id:64,name:"Aust Black Angus Grain Fed T.Bone per 500gr",price:119.50,cat:"steaks"},{id:65,name:"Aust Black Angus Grain Fed Prime Rib per kilo",price:219.00,cat:"steaks"},{id:66,name:"Aust Black Angus Grain Fed Flap Meat 500gr",price:82.50,cat:"steaks"},{id:67,name:"Aust Black Angus Grain Fed Tomahawk per kilo",price:215.00,cat:"steaks"},{id:68,name:"Australian Black Angus Beef Brisket per 500gr",price:59.50,cat:"steaks"},{id:69,name:"MBS 6-7 Wagyu Beef Tenderloin Whole KG",price:630.00,cat:"steaks"},{id:70,name:"MBS 6-7 Wagyu Beef Tenderloin Portion 500gr",price:392.50,cat:"steaks"},{id:71,name:"MBS 6-7 Wagyu Beef Striploin 500gr",price:242.50,cat:"steaks"},{id:72,name:"MBS 6-7 Wagyu Beef Rib Eye 500gr",price:255.00,cat:"steaks"},{id:73,name:"MBS 6-7 Wagyu Beef Flap Meat",price:147.50,cat:"steaks"},{id:74,name:"MBS 6-7 Wagyu Beef Picana 500gr",price:147.50,cat:"steaks"},{id:75,name:"MBS 6-7 Wagyu Flat Iron Steak 500gr",price:199.50,cat:"steaks"},{id:76,name:"MBS 8-9 Wagyu Tenderloin Whole KG",price:656.00,cat:"steaks"},{id:77,name:"MBS 8-9 Wagyu Tenderloin Portion 500gr",price:482.50,cat:"steaks"},{id:78,name:"MBS 8-9 Wagyu Beef Striploin 500gr",price:366.00,cat:"steaks"},{id:79,name:"MBS 8-9 Wagyu Beef Rib Eye 500gr",price:410.00,cat:"steaks"},{id:80,name:"Russian Black Angus 250 Days Corn Fed Tenderloin Whole",price:310.00,cat:"steaks"},{id:81,name:"Russian B.Angus 250 Days Corn Fed Tenderloin Portion 500gr",price:194.50,cat:"steaks"},{id:82,name:"Russian Black Angus 250 Days Corn Fed Rib Eye per 500gr",price:137.50,cat:"steaks"},{id:83,name:"Russian Black Angus 250 Days Corn Fed Striploin per 500gr",price:112.50,cat:"steaks"},{id:84,name:"Kofta with Tahini Sauce Tray",price:130.00,cat:"steaks"},{id:85,name:"Kofta with Tomato Sauce Tray",price:110.00,cat:"steaks"},{id:86,name:"Roasting for Shoulder Lamb",price:92.00,cat:"steaks"},{id:87,name:"Lamb Shank with Vegetables Tray",price:114.00,cat:"steaks"},{id:88,name:"Lamb Chops with Vegetables Tray",price:189.00,cat:"steaks"},{id:89,name:"Marinated Chicken with Vegetables Tray",price:65.00,cat:"steaks"},{id:90,name:"Brazilian Beef Tenderloin Whole",price:128.00,cat:"steaks"},{id:91,name:"New Zealand Grass Fed Beef Striploin per 500gr",price:106.50,cat:"steaks"},{id:92,name:"N.Z Grass Fed Beef Cubes per 500gr",price:44.50,cat:"steaks"},{id:93,name:"Beef Topside Barazilian per 500gr",price:29.50,cat:"steaks"},{id:94,name:"N.Z Grass Fed Rump Cap per 500gr",price:92.50,cat:"steaks"},{id:95,name:"N.Z Grass Fed Beef Escaloppini per 500gr",price:44.50,cat:"steaks"},{id:96,name:"N.Z Grass Fed Beef Stir Fry per 500gr",price:44.50,cat:"steaks"},{id:97,name:"N.Z Grass Fed Beef Mince 250gr",price:22.25,cat:"steaks"},{id:98,name:"Grass Fed N.Z Tenderloin whole kg",price:287.00,cat:"steaks"},{id:99,name:"N.Z Grass Fed Beef Tenderloin Portion per 500gr",price:180.00,cat:"steaks"},{id:100,name:"N.Z Grass Fed Beef Prime Rib KG",price:250.00,cat:"steaks"},{id:101,name:"New Zealand Grass Fed Beef Rib Eye per 500gr",price:122.50,cat:"steaks"},{id:102,name:"N.Z Grass fed Beef Brisket per 500gr",price:59.50,cat:"steaks"},{id:103,name:"N.Z Grass fed Flap Meat per 500gr",price:80.00,cat:"steaks"},{id:104,name:"N.Z Grass Fed Beef Chuck Roll per 500gr",price:61.00,cat:"steaks"},{id:105,name:"N.Z Grass Fed Beef Rump per 500gr",price:56.00,cat:"steaks"},{id:106,name:"N.Z Grass Fed Beef Top Side per 500gr",price:43.00,cat:"steaks"},{id:107,name:"N.Z Grass Fed Flank steak per 500gr",price:77.50,cat:"steaks"},{id:108,name:"N.Z Grass Fed Short Ribs per 500gr",price:70.50,cat:"steaks"},{id:109,name:"New Zealand Grass Fed Beef T.Bone Steak 500gr",price:117.50,cat:"steaks"},{id:110,name:"Brazilian Beef Tenderloin Portion per 500gr",price:74.00,cat:"steaks"},{id:111,name:"Brazilian Beef Striploin per 500gr",price:34.50,cat:"steaks"},{id:112,name:"Brazilian Beef Rib Eye per 500gr",price:34.50,cat:"steaks"},{id:113,name:"Brazilian Beef Cubes per 500gr",price:29.50,cat:"steaks"},{id:114,name:"Brazilian Minced Beef per 250gr",price:14.75,cat:"steaks"},{id:115,name:"Brazilian Beef Eye Round per 500gr",price:29.50,cat:"steaks"},{id:116,name:"Dutch Milk Fed Veal Tenderloin per KG",price:265.00,cat:"steaks"},{id:117,name:"Veal Osso Bucco per 500gr",price:51.75,cat:"steaks"},{id:118,name:"Dutch Milk Fed Veal Striploin per 500gr",price:124.00,cat:"steaks"},{id:119,name:"Dutch Milk Fed Veal Top Side per 500gr",price:105.00,cat:"steaks"},{id:120,name:"Dutch Milk Fed Veal Scallopini per 500gr",price:105.00,cat:"steaks"},{id:121,name:"Dutch Milk Fed Veal Ribeye per 500gr",price:144.00,cat:"steaks"},{id:122,name:"Dutch Milk Fed Veal Cubes per 250gr",price:52.50,cat:"steaks"},{id:123,name:"Dutch Milk Fed Veal Strips per 250gr",price:52.50,cat:"steaks"},{id:124,name:"Naemi Local Lamb Whole per kilo",price:118.00,cat:"steaks"},{id:125,name:"Naemi Lamb Leg per 500gr",price:64.00,cat:"steaks"},{id:126,name:"Naemi Lamb Chops per 500gr",price:65.00,cat:"steaks"},{id:127,name:"Naemi Lamb Shoulder per 500gr",price:64.00,cat:"steaks"},{id:128,name:"Australian Lamb Leg Roast per 500gr",price:139.50,cat:"steaks"},{id:129,name:"Australian Lamb Shoulder Roast per 500gr",price:119.50,cat:"steaks"},{id:130,name:"Australian Lamb Chops per 500gr",price:82.50,cat:"steaks"},{id:131,name:"Australian Lamb Mince per 250gr",price:21.25,cat:"steaks"},{id:132,name:"Australian Lamb Hindshanks per 500gr",price:37.75,cat:"steaks"},
+  {id:133,name:"Chopped Burger (100g or 180g)",price:119.00,cat:"burgers"},{id:134,name:"Chef Beef Burger (100g or 180g)",price:119.00,cat:"burgers"},{id:135,name:"Extra Lean Beef Burger (100g or 180g)",price:119.00,cat:"burgers"},{id:136,name:"Grass Fed Beef Burger (100g or 180g)",price:105.00,cat:"burgers"},{id:137,name:"Wagyu Beef Burger (100g or 180g)",price:159.00,cat:"burgers"},{id:138,name:"Marguez Lamb Sausage per 500gr",price:42.50,cat:"burgers"},{id:139,name:"Lebanese Sausage per 500gr",price:42.50,cat:"burgers"},{id:140,name:"Arabic Style Sausage per 500gr",price:44.50,cat:"burgers"},{id:141,name:"Chicken with Cheese Sausage per 500gr",price:35.00,cat:"burgers"},{id:142,name:"Armenian Style Sausages per 500gr",price:47.50,cat:"burgers"},{id:143,name:"German Style Sausages per 500gr",price:48.50,cat:"burgers"},{id:144,name:"Chopped Smoked Hotdog per 500gr",price:52.50,cat:"burgers"},{id:145,name:"Chorizo Style Beef Sausage per 500gr",price:46.00,cat:"burgers"},{id:146,name:"Frankfurt Style Sausage per 500gr",price:48.50,cat:"burgers"},{id:147,name:"Fresh Lamb Sausages per 500gr",price:39.50,cat:"burgers"},{id:148,name:"Breakfast Veal Sausage per 500gr",price:99.50,cat:"burgers"},{id:149,name:"Jalapeno Cheddar Hot Dog per 500gr",price:52.00,cat:"burgers"},{id:150,name:"South African Boerewors per 500gr",price:42.50,cat:"burgers"},{id:151,name:"Fresh Chicken Sausage per 500gr",price:29.50,cat:"burgers"},{id:152,name:"Beef Escalope KG",price:95.00,cat:"burgers"},{id:153,name:"Chicken Nugget KG",price:59.00,cat:"burgers"},{id:154,name:"Italian Meat Roll Stuffed with Vegetables and Cheese",price:93.00,cat:"burgers"},{id:155,name:"Chicken Luly Pop KG",price:59.00,cat:"burgers"},{id:156,name:"Spicy Chicken and Cheese Balls KG",price:75.00,cat:"burgers"},{id:157,name:"Garlic & Ginger Chicken Thighs KG",price:62.00,cat:"burgers"},{id:158,name:"Chicken Rolls with Cheese KG",price:69.00,cat:"burgers"},{id:159,name:"Chicken Stir-Fry KG",price:63.50,cat:"burgers"},{id:160,name:"Dough Kobbeh KG",price:63.00,cat:"burgers"},{id:161,name:"Chicken Lollipops Drumsticks KG",price:39.00,cat:"burgers"},
+  {id:162,name:"Potato Buns Small x 2",price:3.50,cat:"bread"},{id:163,name:"Potato Buns Big x 2",price:4.50,cat:"bread"},{id:164,name:"Ciabatta Bread x 2",price:5.00,cat:"bread"},{id:165,name:"PAN AU LAIT BUN 35g 6pcs",price:5.00,cat:"bread"},{id:166,name:"Potato Roll Hot Dog x 2",price:3.80,cat:"bread"},
+  {id:167,name:"Chicken Breast Stuffed with Spinach and Cheese KG",price:67.00,cat:"readycook"},{id:168,name:"Stuffed Mushrooms Per 500gr",price:50.00,cat:"readycook"},{id:169,name:"Stuffed Double Baked Potatoes Per 500gr",price:28.50,cat:"readycook"},{id:170,name:"Turkey Stuffed Marinated Ready to Cook KG",price:77.80,cat:"readycook"},{id:171,name:"Fresh Chicken Kiev KG",price:64.00,cat:"readycook"},
+  {id:172,name:"English White Cheddar 250gr",price:14.50,cat:"cheese"},{id:173,name:"Swiss Gruyere 250gr",price:60.25,cat:"cheese"},{id:174,name:"Swiss Emmental Cheese 250gr",price:41.63,cat:"cheese"},{id:175,name:"Monetary Jack 250gr",price:19.75,cat:"cheese"},{id:176,name:"Parmiggiano Reggiano 24 month 250gr",price:66.25,cat:"cheese"},{id:177,name:"Mozzerela Cheese 250gr",price:13.75,cat:"cheese"},{id:178,name:"Smoked Cheese 250gr",price:19.00,cat:"cheese"},{id:179,name:"French Brie Cheese 250gr",price:38.25,cat:"cheese"},{id:180,name:"Manchego Cheese 250gr",price:55.00,cat:"cheese"},{id:181,name:"Italian Beef Bresaola 250gr",price:132.25,cat:"cheese"},{id:182,name:"Spicy Beef Salami Italian 250gr",price:79.75,cat:"cheese"},{id:183,name:"Regular Beef Salami Italian 250gr",price:71.25,cat:"cheese"},{id:184,name:"Grana Padano Cheese 250gr",price:34.50,cat:"cheese"},{id:185,name:"Comte Cheese 250gr",price:62.00,cat:"cheese"},{id:186,name:"Gorgonzola Sharp Cheese Italy 250gr",price:59.25,cat:"cheese"},{id:187,name:"Chever Goat Cheese White 250gr",price:49.00,cat:"cheese"},{id:188,name:"Provolone Cheese Italy 250gr",price:33.25,cat:"cheese"},{id:189,name:"Swiss Appenzeller Cheese 250gr",price:75.75,cat:"cheese"},{id:190,name:"Pecorino Cheese with Truffle 250gr",price:102.50,cat:"cheese"},{id:191,name:"Tete De Moine Cheese Swiss 250gr",price:82.00,cat:"cheese"},{id:192,name:"Racllete Cheese France 250gr",price:51.25,cat:"cheese"},{id:193,name:"Cheese Platter XL",price:460.00,cat:"cheese"},{id:194,name:"Cheese Platter Small",price:95.00,cat:"cheese"},{id:195,name:"Cheese Platter Medium",price:195.00,cat:"cheese"},{id:196,name:"Cheese Platter Large",price:315.00,cat:"cheese"},
+  {id:197,name:"Orient Garden Yellow Mustard 227g",price:11.50,cat:"pasta"},{id:198,name:"Hellmann's Real Mayonnaise 410g",price:20.50,cat:"pasta"},{id:199,name:"Orient Garden Chipotle Mayonnaise 340ml",price:15.00,cat:"pasta"},{id:200,name:"Orient Garden BBQ Mayonnaise 340ml",price:15.00,cat:"pasta"},{id:201,name:"Freshly Nacho Cheese Sauce 397g",price:25.00,cat:"pasta"},{id:202,name:"Orient Gardens Lite Mayonnaise 340ml",price:14.50,cat:"pasta"},{id:203,name:"Freshly Dijon Mustard 255g",price:20.50,cat:"pasta"},{id:204,name:"Freshly Tartar Sauce with Relish 255g",price:13.70,cat:"pasta"},{id:205,name:"Orient Gardens Burger Sauce 280g",price:15.00,cat:"pasta"},{id:206,name:"Hellmann's Tomato Ketchup 500gm",price:20.50,cat:"pasta"},{id:207,name:"Freshly Tomato Ketchup 567g",price:17.50,cat:"pasta"},{id:208,name:"O.G Hot & Spicy Mayonnaise 340ml",price:13.50,cat:"pasta"},{id:209,name:"RUMMO Rigatoni No 50 500g",price:17.50,cat:"pasta"},{id:210,name:"RUMMO Fettuccine Nr 15 500g",price:17.50,cat:"pasta"},{id:211,name:"Rummo Spaghetti Bucatini Nr 6 500g",price:17.50,cat:"pasta"},{id:212,name:"Rummo Mafaldine No 80 500g",price:23.00,cat:"pasta"},{id:213,name:"Beerenberg Tomato Sauce 300ml",price:24.50,cat:"pasta"},{id:214,name:"White Truffle Flavored Olive Oil 250ml",price:115.00,cat:"pasta"},{id:215,name:"Mission Chunky Salsa Mild 300g",price:11.50,cat:"pasta"},{id:216,name:"Freshly Worcestershire Sauce 295ml",price:16.50,cat:"pasta"},{id:217,name:"Black Truffle Oil 250ml",price:115.00,cat:"pasta"},{id:218,name:"Red Jalapeno Sauce 100ml",price:43.00,cat:"pasta"},{id:219,name:"Chimichurri Sauce 350ml",price:99.00,cat:"pasta"},{id:220,name:"Mission Sauce With Cheddar Mild 300g",price:17.00,cat:"pasta"},{id:221,name:"Colgin Liquid Smoke Mesquite 118ml",price:23.50,cat:"pasta"},{id:222,name:"Colgin Liquid Smoke Hickory 118ml",price:23.50,cat:"pasta"},{id:223,name:"Chopped Sauce Chicken/Beef",price:6.00,cat:"pasta"},{id:224,name:"Rummo Mezze Penne Rigate Nr 28 500g",price:17.50,cat:"pasta"},{id:225,name:"Rummo Casarecce Nr 88 500g",price:17.50,cat:"pasta"},{id:226,name:"Rummo Fusilli Pasta Nr 48 500g",price:17.50,cat:"pasta"},{id:227,name:"Rummo Spaghetti No 3 500g",price:17.50,cat:"pasta"},{id:228,name:"Aged Balsamic Vinegar of Modena 250ml",price:225.00,cat:"pasta"},{id:229,name:"Green Jalapeno Sauce 100ml",price:43.00,cat:"pasta"},{id:230,name:"Freshly Pickled Hot Cherry Peppers 640g",price:24.00,cat:"pasta"},{id:231,name:"Sweet Chili Sauce 340ml",price:25.00,cat:"pasta"},{id:232,name:"Freshly Mild Pepper Paste 650g",price:28.00,cat:"pasta"},{id:233,name:"Truffle Sauce 500g",price:166.50,cat:"pasta"},{id:234,name:"Balsamic Vinegar of Modena Spray 250ml",price:51.00,cat:"pasta"},{id:235,name:"Extra Virgin Olive Oil with Rosemary 250ml",price:41.00,cat:"pasta"},{id:236,name:"Extra Virgin Olive Oil with Oregano 250ml",price:41.00,cat:"pasta"},{id:237,name:"Extra Virgin Olive Oil with Basil 250ml",price:41.00,cat:"pasta"},{id:238,name:"Peri Peri Sauce 350g",price:99.00,cat:"pasta"},{id:239,name:"Freshly Pickled Beets 680gm",price:13.50,cat:"pasta"},
+  {id:240,name:"Legero Alcohol Free White Wine 750ml",price:53.00,cat:"grocery"},{id:241,name:"Legero Alcohol Free Red Wine 750ml",price:53.00,cat:"grocery"},{id:242,name:"Edamame Frozen 500g",price:19.50,cat:"grocery"},{id:243,name:"Frozen Beef Bacon KG",price:120.00,cat:"grocery"},{id:244,name:"Lamb Westen Mozzarella Sticks 1kg",price:82.00,cat:"grocery"},{id:245,name:"Granarollo Mozzarella 125g Frozen",price:17.50,cat:"grocery"},{id:246,name:"Granarollo Buffalo Mozzarella 125g Frozen",price:19.00,cat:"grocery"},{id:247,name:"Granarollo Burrata Cheese 125g x 2 Frozen",price:44.00,cat:"grocery"},{id:248,name:"Raw Duck Breast Frozen KG",price:345.00,cat:"grocery"},{id:249,name:"Beef Hotdog Frozen KG",price:110.00,cat:"grocery"},{id:250,name:"Legero Red Grape Juice 250ml",price:19.50,cat:"grocery"},{id:251,name:"Salmon Portion Skinless Frozen KG",price:150.00,cat:"grocery"},{id:252,name:"Corn Fed Chicken Frozen KG",price:106.00,cat:"grocery"},{id:253,name:"Corn Fed Baby Chicken Frozen KG",price:144.60,cat:"grocery"},{id:254,name:"W & S Honey Mustard Sauce 285g",price:23.00,cat:"grocery"},{id:255,name:"W & S Tomato Ketchup 310g",price:23.00,cat:"grocery"},{id:256,name:"W & S BBQ Sauce 310g",price:23.00,cat:"grocery"},{id:257,name:"Aust Beef Cheek Meat Frozen KG",price:155.50,cat:"grocery"},{id:258,name:"Legero White Grape Juice 250ml",price:19.50,cat:"grocery"},
+  {id:259,name:"Maldon Sea Salt 125g",price:28.00,cat:"salt"},{id:260,name:"Maldon Sea Salt 250g",price:43.00,cat:"salt"},{id:261,name:"Madon Smoked Sea Salt 125g",price:40.50,cat:"salt"},{id:262,name:"Maldon Sea Salt 1.4kg",price:229.00,cat:"salt"},{id:263,name:"Caber Pink Himalayan Salt 800g",price:35.50,cat:"salt"},
+  {id:264,name:"Box Chopped Burger 100g x 4 Pcs",price:109.00,cat:"burgerbox"},{id:265,name:"Box Chopped Burger 100g x 8 Pcs",price:158.00,cat:"burgerbox"},{id:266,name:"Box Chopped Burger 180g x 4 Pcs",price:136.00,cat:"burgerbox"},{id:267,name:"Box Chopped Burger 180g x 8 Pcs",price:234.00,cat:"burgerbox"},{id:268,name:"Box Chef Burger 100g x 4 Pcs",price:104.00,cat:"burgerbox"},{id:269,name:"Box Chef Burger 100g x 8 Pcs",price:149.00,cat:"burgerbox"},{id:270,name:"Box Extra Lean Burger 100g x 4 Pcs",price:109.00,cat:"burgerbox"},{id:271,name:"Box Extra Lean Burger 100g x 8 Pcs",price:158.00,cat:"burgerbox"},{id:272,name:"Box Extra Lean Burger 180g x 4 Pcs",price:136.00,cat:"burgerbox"},{id:273,name:"Box Extra Lean Burger 180g x 8 Pcs",price:234.00,cat:"burgerbox"},{id:274,name:"Box Grass Fed Burger 100g x 4 Pcs",price:104.00,cat:"burgerbox"},{id:275,name:"Box Grass Fed Burger 100g x 8 Pcs",price:150.00,cat:"burgerbox"},{id:276,name:"Box Grass Fed Burger 180g x 4 Pcs",price:131.00,cat:"burgerbox"},{id:277,name:"Box Grass Fed Burger 180g x 8 Pcs",price:225.00,cat:"burgerbox"},{id:278,name:"Box Wagyu Beef Burger 100g x 4 Pcs",price:138.00,cat:"burgerbox"},{id:279,name:"Box Wagyu Beef Burger 100g x 8 Pcs",price:215.00,cat:"burgerbox"},{id:280,name:"Box Wagyu Beef Burger 180g x 4 Pcs",price:210.00,cat:"burgerbox"},{id:281,name:"Box Wagyu Beef Burger 180g x 8 Pcs",price:375.00,cat:"burgerbox"},{id:282,name:"Box Chicken Burger 100gm x 4 pcs",price:95.00,cat:"burgerbox"},{id:283,name:"Box Chicken Burger 100gm x 8 pcs",price:115.00,cat:"burgerbox"}
+];
+
+var lang="ar", cart={}, activeCat="all", searchText="", customerName="", customerPhone="", orderCounter=1;
+
+function t(a,e){return lang==="ar"?a:e;}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function getCat(id){return CATEGORIES.find(function(c){return c.id===id;})||{ar:"",en:"",emoji:""};}
+function cartCount(){return Object.values(cart).reduce(function(s,q){return s+q;},0);}
+function cartTotal(){return Object.entries(cart).reduce(function(s,e){var m=MENU.find(function(x){return x.id==e[0];});return s+(m?m.price*e[1]:0);},0);}
+function addItem(id){cart[id]=(cart[id]||0)+1;render();}
+function remItem(id){if(cart[id]>1)cart[id]--;else delete cart[id];render();}
+
+function showToast(msg,type){
+  var el=document.getElementById("toast");
+  el.textContent=msg; el.className="show "+(type||"ok");
+  clearTimeout(el._t); el._t=setTimeout(function(){el.className="";},3000);
+}
+
+function setLang(l){
+  lang=l;
+  document.querySelectorAll(".lang-btn").forEach(function(b){
+    b.className="lang-btn"+(b.textContent.trim()===(l==="ar"?"ع":"EN")?" active":"");
+  });
+  document.documentElement.dir=l==="ar"?"rtl":"ltr";
+  document.documentElement.lang=l;
+  render();
+}
+
+function updateCartBar(){
+  var bar=document.getElementById("cart-bar");
+  var n=cartCount();
+  if(n>0){
+    bar.className="visible";
+    document.getElementById("cart-count").textContent=n+" "+t("صنف","items");
+    document.getElementById("cart-total").textContent=cartTotal().toFixed(2)+" "+t("ر.س","SAR");
+    document.getElementById("wa-btn").textContent="📱 "+t("إرسال الطلب","Send Order");
+  } else { bar.className=""; }
+}
+
+function onSearch(val){
+  searchText = val;
+  // Re-render only the menu list, not the whole page
+  renderMenuOnly();
+}
+
+function clearSearch(){
+  searchText = "";
+  render();
+}
+
+function renderMenuOnly(){
+  // Update just the items list without touching the search input
+  var items = MENU.filter(function(m){
+    return (activeCat==="all"||m.cat===activeCat) && m.name.toLowerCase().indexOf(searchText.toLowerCase())>=0;
+  });
+  var listEl = document.getElementById("menu-list");
+  if(!listEl){ render(); return; }
+  var html = "";
+  if(items.length===0){
+    html='<div class="empty">🔍 '+t("لا توجد نتائج","No results")+'</div>';
+  } else {
+    items.forEach(function(m){
+      var cat=getCat(m.cat), qty=cart[m.id]||0;
+      html+='<div class="menu-item"><div style="flex:1;margin-inline-end:10px"><div class="item-cat">'+cat.emoji+' '+(lang==="ar"?cat.ar:cat.en)+'</div>';
+      html+='<div class="item-name">'+esc(m.name)+'</div><div class="item-price">'+m.price.toFixed(2)+' '+t("ر.س","SAR")+'</div></div>';
+      if(qty===0) html+='<button class="add-btn" onclick="addItem('+m.id+')">+</button>';
+      else html+='<div class="qty-ctrl"><button class="qty-btn" onclick="remItem('+m.id+')">−</button><span class="qty-num">'+qty+'</span><button class="qty-btn" onclick="addItem('+m.id+')">+</button></div>';
+      html+='</div>';
+    });
+  }
+  listEl.innerHTML = html;
+  // Update clear button
+  var clearBtn = document.getElementById("clear-search");
+  if(searchText && !clearBtn){
+    var searchBox = document.getElementById("search-box");
+    if(searchBox){
+      var btn = document.createElement("button");
+      btn.id = "clear-search";
+      btn.setAttribute("onclick","clearSearch()");
+      btn.className = "";
+      btn.style.cssText = "border:none;background:none;font-size:20px;color:#8B7355;line-height:1;cursor:pointer";
+      btn.textContent = "×";
+      searchBox.appendChild(btn);
+    }
+  } else if(!searchText && clearBtn){
+    clearBtn.remove();
+  }
+  updateCartBar();
+}
+
+function render(){
+  updateCartBar();
+  var items=MENU.filter(function(m){
+    return (activeCat==="all"||m.cat===activeCat) && m.name.toLowerCase().indexOf(searchText.toLowerCase())>=0;
+  });
+  var html="";
+  if(!IS_CONFIGURED) html+='<div class="alert">⚠️ '+t("وضع تجريبي — الطلبات لن تُحفظ.","Demo mode — orders not saved.")+'</div>';
+  html+='<div class="card" style="margin-bottom:12px"><div class="input-label">'+t("اسمك *","Your name *")+'</div>';
+  html+='<input class="text-input" id="cname" placeholder="'+t("مثال: محمد","e.g. Mohammed")+'" value="'+esc(customerName)+'" oninput="customerName=this.value"></div>';
+  html+='<div class="card" style="margin-bottom:12px"><div class="input-label">'+t("رقم جوالك *","Your phone *")+'</div>';
+  html+='<input class="text-input" id="cphone" type="tel" placeholder="'+t("مثال: 0501234567","e.g. 0501234567")+'" value="'+esc(customerPhone)+'" oninput="customerPhone=this.value"></div>';
+  html+='<div id="search-box"><span>🔍</span><input id="search-input" placeholder="'+t("ابحث...","Search...")+'" value="'+esc(searchText)+'" oninput="onSearch(this.value)">';
+  if(searchText) html+='<button id="clear-search" onclick="clearSearch()">×</button>';
+  html+='</div><div id="cat-row"><button class="cat-pill'+(activeCat==="all"?" active":"")+'" onclick="activeCat=\'all\';render()">'+t("الكل","All")+'</button>';
+  CATEGORIES.forEach(function(c){html+='<button class="cat-pill'+(activeCat===c.id?" active":"")+'" onclick="activeCat=\''+c.id+'\';render()">'+c.emoji+' '+(lang==="ar"?c.ar:c.en)+'</button>';});
+  html+='</div><div id="menu-list" style="margin-bottom:'+(cartCount()>0?90:10)+'px">';
+  if(items.length===0){html+='<div class="empty">🔍 '+t("لا توجد نتائج","No results")+'</div>';}
+  else items.forEach(function(m){
+    var cat=getCat(m.cat), qty=cart[m.id]||0;
+    html+='<div class="menu-item"><div style="flex:1;margin-inline-end:10px"><div class="item-cat">'+cat.emoji+' '+(lang==="ar"?cat.ar:cat.en)+'</div>';
+    html+='<div class="item-name">'+esc(m.name)+'</div><div class="item-price">'+m.price.toFixed(2)+' '+t("ر.س","SAR")+'</div></div>';
+    if(qty===0) html+='<button class="add-btn" onclick="addItem('+m.id+')">+</button>';
+    else html+='<div class="qty-ctrl"><button class="qty-btn" onclick="remItem('+m.id+')">−</button><span class="qty-num">'+qty+'</span><button class="qty-btn" onclick="addItem('+m.id+')">+</button></div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  document.getElementById("content").innerHTML=html;
+}
+
+async function sendOrder(){
+  var name=(document.getElementById("cname")||{}).value||customerName;
+  customerName=name.trim();
+  if(!cartCount()) return;
+  if(!customerName) return showToast(t("أدخل اسمك أولاً","Enter your name first"),"err");
+  var phone=(document.getElementById("cphone")||{}).value||customerPhone;
+  customerPhone=phone.trim();
+  if(!customerPhone) return showToast(t("أدخل رقم جوالك","Enter your phone number"),"err");
+  var items=Object.entries(cart).map(function(e){var m=MENU.find(function(x){return x.id==e[0];});return {id:+e[0],name:m?m.name:"",qty:e[1],price:m?m.price:0};});
+  var total=cartTotal().toFixed(2);
+  var orderId="#"+String(orderCounter++).padStart(3,"0");
+  if(IS_CONFIGURED){
+    try{
+      var inserted = await supabaseInsert("orders", {
+        customer: customerName,
+        phone: customerPhone,
+        items: items,
+        total: parseFloat(total),
+        status: "new"
+      });
+      if(inserted && inserted[0] && inserted[0].id) orderId = "#" + String(inserted[0].id).padStart(3,"0");
+    }catch(e){ console.error("Supabase error:", e); }
+  }
+  var lines=items.map(function(i){return "• "+i.name+" x"+i.qty+" — "+(i.price*i.qty).toFixed(2)+" SAR";}).join("\n");
+  var msg="🛒 "+t("طلب جديد","New Order")+" - Chopped\n"+t("العميل:","Customer:")+customerName+" | "+t("جوال:","Phone:")+customerPhone+"\n\n"+lines+"\n\n"+t("الإجمالي:","Total:")+total+" SAR\n"+t("رقم الطلب:","Order:")+orderId;
+  window.open("https://wa.me/"+WA_NUMBER+"?text="+encodeURIComponent(msg),"_blank");
+  cart={}; customerName=""; customerPhone="";
+  showToast(t("تم إرسال الطلب ","Order sent ")+orderId);
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

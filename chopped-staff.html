@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Chopped — Staff</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f5f0e8;color:#2C1810}
+button,input,select{font-family:inherit;cursor:pointer}
+input{cursor:text}
+::-webkit-scrollbar{height:4px;width:4px}
+::-webkit-scrollbar-thumb{background:#d4c4a0;border-radius:4px}
+
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#2C1810,#5C2D0E);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;z-index:999;overflow-y:auto}
+#login-screen.hidden{display:none}
+.login-logo{font-size:52px;margin-bottom:12px}
+.login-title{color:#fff;font-size:22px;font-weight:700;margin-bottom:4px}
+.login-sub{color:#D4A574;font-size:13px;margin-bottom:28px;text-align:center}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:340px;margin-bottom:20px}
+.role-btn{padding:16px 8px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:14px;color:#fff;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.2s}
+.role-btn:hover{background:rgba(255,255,255,0.2)}
+.role-btn.selected{background:#D4A574;border-color:#D4A574;color:#2C1810}
+.role-icon{font-size:26px}
+.pw-box{width:100%;max-width:320px;display:none}
+.pw-label{color:#D4A574;font-size:12px;margin-bottom:8px;display:block;text-align:center}
+.pw-input{width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:18px;text-align:center;letter-spacing:4px;outline:none;margin-bottom:10px;box-sizing:border-box}
+.pw-input::placeholder{letter-spacing:0;color:rgba(255,255,255,0.4);font-size:13px}
+.pw-input:focus{border-color:rgba(255,255,255,0.5)}
+.pw-btn{width:100%;padding:14px;background:#D4A574;color:#2C1810;border:none;border-radius:12px;font-size:15px;font-weight:700}
+.pw-error{color:#ff8a8a;font-size:12px;text-align:center;min-height:18px;margin-bottom:6px}
+
+#app{display:none}
+#app.visible{display:block}
+#header{background:linear-gradient(135deg,#2C1810,#5C2D0E);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+#header-title{color:#fff;font-size:15px;font-weight:700}
+#header-right{display:flex;align-items:center;gap:8px}
+#lang-toggle{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:3px;display:flex;gap:2px}
+.lang-btn{padding:3px 9px;border-radius:16px;font-size:11px;border:none;background:transparent;color:rgba(255,255,255,0.7)}
+.lang-btn.active{background:#fff;color:#2C1810;font-weight:600}
+#logout-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:11px;padding:4px 10px}
+#tabs{background:#fff;border-bottom:1px solid #e8e0d0;display:flex;position:sticky;top:57px;z-index:99}
+.tab-btn{flex:1;padding:10px 4px;border:none;background:none;font-size:11px;color:#8B7355;border-bottom:2.5px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px;transition:all 0.2s}
+.tab-icon{font-size:16px}
+.tab-btn.active{color:#5C2D0E;border-bottom-color:#5C2D0E;font-weight:700}
+#content{padding:14px;max-width:700px;margin:0 auto}
+
+.card{background:#fff;border:1px solid #e8e0d0;border-radius:12px;padding:14px;margin-bottom:10px}
+.alert{background:#FFF3CD;border:1px solid #FFC107;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#856404}
+.section-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.section-title{font-weight:600;font-size:15px;color:#2C1810}
+.refresh-btn{background:#5C2D0E;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600}
+.sync-info{font-size:11px;color:#8B7355;margin-bottom:12px}
+.empty{text-align:center;padding:40px 20px;color:#8B7355;font-size:14px}
+
+.order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.order-id{font-weight:700;font-size:14px}
+.order-customer{font-size:13px;color:#5C4033}
+.order-time{font-size:11px;color:#8B7355}
+.order-total{font-size:14px;font-weight:700;color:#5C2D0E;margin-top:4px}
+.status-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.s-new{background:#FFF8EC;color:#B5873A}
+.s-confirmed{background:#F0FDF4;color:#166534}
+.s-cooking{background:#FEF2F2;color:#dc2626}
+.s-done{background:#F1F5F9;color:#64748b}
+.order-items-text{font-size:12px;color:#5C4033;background:#faf7f2;border-radius:8px;padding:8px 10px;margin-bottom:12px;line-height:1.8}
+.order-actions{display:flex;gap:8px}
+.btn-confirm{flex:1;padding:9px;border-radius:10px;font-size:12px;font-weight:600;border:none;background:#5C2D0E;color:#fff}
+.btn-reject{flex:1;padding:9px;border-radius:10px;font-size:12px;font-weight:600;border:1px solid #dc2626;background:#fef2f2;color:#dc2626}
+.btn-kitchen{flex:1;padding:9px;border-radius:10px;font-size:12px;font-weight:600;border:none;background:#dc2626;color:#fff}
+.cooking-label{font-size:12px;color:#dc2626;font-weight:600;padding:8px 0}
+
+.kitchen-card{background:#fff;border:2px solid #dc2626;border-radius:12px;padding:14px;margin-bottom:10px}
+.kitchen-id{font-size:22px;font-weight:700;color:#5C2D0E}
+.kitchen-name{font-size:13px;color:#5C4033;margin-bottom:10px}
+.kitchen-item{font-size:14px;color:#2C1810;padding:6px 0;border-bottom:1px solid #f0ebe0;display:flex;justify-content:space-between}
+.kitchen-item:last-of-type{border-bottom:none}
+.kitchen-qty{font-weight:700;color:#5C2D0E}
+.btn-done{width:100%;padding:12px;background:#22c55e;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;margin-top:12px}
+
+.admin-section-title{font-size:13px;font-weight:700;color:#5C2D0E;margin-bottom:8px;padding:7px 12px;background:#FFF8EC;border-radius:8px;border-right:3px solid #5C2D0E}
+.admin-item{background:#fff;border:1px solid #e8e0d0;border-radius:10px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.admin-item-name{font-size:12px;font-weight:500;color:#2C1810}
+.admin-item-price{font-size:13px;font-weight:700;color:#5C2D0E;margin-top:2px}
+.admin-actions-btns{display:flex;gap:6px;flex-shrink:0}
+.edit-btn{width:32px;height:32px;border-radius:8px;border:1px solid #d4c4a0;background:#f5f0e8;color:#5C2D0E;font-size:15px}
+.del-btn{width:32px;height:32px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;font-size:15px}
+.add-toggle-btn{width:100%;padding:12px;border:2px dashed #d4c4a0;border-radius:12px;background:transparent;color:#5C2D0E;font-size:13px;font-weight:600;margin-bottom:14px}
+.form-card{background:#faf7f2;border:1px solid #e8e0d0;border-radius:12px;padding:16px;margin-bottom:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:12px;color:#8B7355}
+.text-input{width:100%;padding:10px 12px;border:1px solid #d4c4a0;border-radius:8px;font-size:13px;background:#fff;outline:none;box-sizing:border-box}
+.text-input:focus{border-color:#5C2D0E}
+.save-btn{width:100%;padding:12px;background:#5C2D0E;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;margin-top:4px}
+
+/* REPORTS */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.stat-card{background:#fff;border:1px solid #e8e0d0;border-radius:14px;padding:16px;text-align:center;border-right:4px solid #5C2D0E}
+.stat-val{font-size:30px;font-weight:800;color:#5C2D0E;margin-bottom:4px}
+.stat-lbl{font-size:12px;color:#8B7355}
+.top-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0ebe0;font-size:13px}
+.top-item:last-child{border-bottom:none}
+.top-item-name{color:#2C1810;flex:1}
+.top-item-count{font-weight:700;color:#5C2D0E;background:#FFF8EC;padding:2px 10px;border-radius:20px;font-size:12px}
+.report-section{background:#fff;border:1px solid #e8e0d0;border-radius:12px;padding:14px;margin-bottom:12px}
+.report-title{font-weight:700;font-size:13px;color:#2C1810;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:12px;font-weight:600;font-size:14px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.25);white-space:nowrap;display:none;pointer-events:none}
+#toast.show{display:block}
+#toast.ok{background:#22c55e;color:#fff}
+#toast.err{background:#ef4444;color:#fff}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-logo">🥩</div>
+  <div class="login-title">Chopped — Staff</div>
+  <div class="login-sub" id="login-sub">اختر دورك وأدخل كلمة المرور</div>
+  <div class="role-grid">
+    <button class="role-btn" id="role-manager" onclick="selectRole('manager')">
+      <span class="role-icon">📋</span><span id="rl-manager">المدير</span>
+    </button>
+    <button class="role-btn" id="role-kitchen" onclick="selectRole('kitchen')">
+      <span class="role-icon">👨‍🍳</span><span id="rl-kitchen">المطبخ</span>
+    </button>
+    <button class="role-btn" id="role-admin" onclick="selectRole('admin')">
+      <span class="role-icon">⚙️</span><span id="rl-admin">الإدارة</span>
+    </button>
+    <button class="role-btn" id="role-gm" onclick="selectRole('gm')">
+      <span class="role-icon">📊</span><span id="rl-gm">المدير العام</span>
+    </button>
+  </div>
+  <div class="pw-box" id="pw-box">
+    <span class="pw-label" id="pw-label">كلمة المرور</span>
+    <input class="pw-input" id="pw-input" type="password" placeholder="أدخل كلمة المرور">
+    <div class="pw-error" id="pw-error"></div>
+    <button class="pw-btn" id="pw-btn" onclick="tryLogin()">دخول</button>
+  </div>
+</div>
+
+<div id="app">
+  <div id="header">
+    <div id="header-title">🥩 Chopped</div>
+    <div id="header-right">
+      <div id="lang-toggle">
+        <button class="lang-btn active" onclick="setLang('ar')">ع</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
+      </div>
+      <button id="logout-btn" onclick="logout()">🔒 خروج</button>
+    </div>
+  </div>
+  <div id="tabs"></div>
+  <div id="content"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var SUPABASE_URL = "https://qkdttgcfxapmbonhftuu.supabase.co";
+var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrZHR0Z2NmeGFwbWJvbmhmdHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MTQ5MjIsImV4cCI6MjA5NzA5MDkyMn0.5p477GpYcdBZZ5Gf2v5T5XdMKjVA_8NKg2NtWf6qq-U";
+var WA_NUMBER = "966558927634";
+var IS_CONFIGURED = true;
+
+async function supabaseFetch(path, options) {
+  var headers = Object.assign({
+    "apikey": SUPABASE_KEY,
+    "Authorization": "Bearer " + SUPABASE_KEY,
+    "Content-Type": "application/json"
+  }, options && options.headers ? options.headers : {});
+  var r = await fetch(SUPABASE_URL + "/rest/v1/" + path, Object.assign({}, options, { headers: headers }));
+  if (!r.ok) throw new Error("Supabase error: " + r.status);
+  return await r.json();
+}
+
+var PASSWORDS = {manager:"00123", kitchen:"00123", admin:"00123", gm:"00123"};
+
+var CATEGORIES = [
+  {id:"daily",ar:"الطبخ اليومي",en:"Daily Cooking",emoji:"🍖"},
+  {id:"chicken",ar:"دجاج كامل وقطع",en:"Whole Chicken & Cuts",emoji:"🍗"},
+  {id:"bbq",ar:"باربيكيو",en:"BBQ",emoji:"🔥"},
+  {id:"steaks",ar:"ستيك وروست",en:"Steaks & Roasts",emoji:"🥩"},
+  {id:"burgers",ar:"برغر وسجق",en:"Burgers & Sausages",emoji:"🍔"},
+  {id:"bread",ar:"خبز",en:"Bread",emoji:"🍞"},
+  {id:"readycook",ar:"جاهز للطبخ",en:"Ready to Cook",emoji:"🫕"},
+  {id:"cheese",ar:"جبن وبارد",en:"Cheese & Cold Cuts",emoji:"🧀"},
+  {id:"pasta",ar:"باستا وصوص",en:"Pasta & Sauces",emoji:"🍝"},
+  {id:"grocery",ar:"بقالة ومجمد",en:"Grocery & Frozen",emoji:"🛒"},
+  {id:"salt",ar:"ملح",en:"Salt",emoji:"🧂"},
+  {id:"burgerbox",ar:"صناديق برغر",en:"Burger Boxes",emoji:"📦"}
+];
+
+var MENU_DATA = [
+  {id:1,name:"Mince Beef per 250gr",price:18.75,cat:"daily"},{id:2,name:"Extra Lean Mince Beef per 250gr",price:26.25,cat:"daily"},{id:3,name:"Beef Cubes for Cooking per 250gr",price:22.48,cat:"daily"},{id:4,name:"Lamb Pcs for Manasaf (Bone in) per 500gr",price:32.50,cat:"daily"},{id:5,name:"Beef Strips / Straganoff per 250gr",price:22.48,cat:"daily"},{id:6,name:"Kubbeh with Borgol per 500gr",price:31.50,cat:"daily"},{id:7,name:"Traditional Kofta for Oven per 500gr",price:39.00,cat:"daily"},{id:8,name:"Australian Bone in Lamb Leg per 500gr",price:33.50,cat:"daily"},{id:9,name:"Australian Boneless Lamb Cubes per 500gr",price:46.00,cat:"daily"},{id:10,name:"Australian Bone in Lamb Shoulder per 500gr",price:32.50,cat:"daily"},
+  {id:11,name:"Astra Whole Fresh Chicken 1100gr",price:20.00,cat:"chicken"},{id:12,name:"Astra Whole Fresh Chicken 1200gr",price:21.00,cat:"chicken"},{id:13,name:"Astra Chicken Breast Bone in 500g",price:12.00,cat:"chicken"},{id:14,name:"Astra Chicken Breast Boneless 450g",price:22.50,cat:"chicken"},{id:15,name:"Astra Chicken Whole Leg 500g",price:12.00,cat:"chicken"},{id:16,name:"Astra Chicken Drumsticks 500g",price:12.00,cat:"chicken"},{id:17,name:"Astra Chicken Thigh Bone in 500g",price:8.70,cat:"chicken"},{id:18,name:"Astra Chicken Wings 500g",price:7.00,cat:"chicken"},{id:19,name:"Astra Fresh Quails 600g Tray",price:26.00,cat:"chicken"},{id:20,name:"Chickens Minced per 250gr",price:11.00,cat:"chicken"},{id:21,name:"Marinated Chicken Stir Fry KG",price:63.50,cat:"chicken"},{id:22,name:"Fresh Chicken Kabab per 500gr",price:32.50,cat:"chicken"},{id:23,name:"Marinated Chicken For Oven",price:33.00,cat:"chicken"},{id:24,name:"Fresh Chicken Kiev KG",price:70.00,cat:"chicken"},
+  {id:25,name:"Lamb Fillet Cubes for BBQ Skewers per 500gr",price:74.50,cat:"bbq"},{id:26,name:"Chopped Kebab Skewer per 500gr",price:39.00,cat:"bbq"},{id:27,name:"Chopped Shish Tawooq Skewers per 500gr",price:37.50,cat:"bbq"},{id:28,name:"Shish Tawouq with Thyme & Garlic per 500gr",price:37.50,cat:"bbq"},{id:29,name:"Hot & Smokey Shish Tawouq Skewers per 500gr",price:37.50,cat:"bbq"},{id:30,name:"Boneless Chicken Breast Marinated for BBQ per 500gr",price:37.50,cat:"bbq"},{id:31,name:"Chicken Drumsticks Marinated for BBQ per 500gr",price:21.00,cat:"bbq"},{id:32,name:"Buffalo Chicken Wings per 500gr",price:24.00,cat:"bbq"},{id:33,name:"BBQ For Quails Fresh 500gr",price:34.50,cat:"bbq"},{id:34,name:"Chilled Lamb Tenderloin per 500gr",price:74.50,cat:"bbq"},{id:35,name:"Whole Chicken B-Less For BBQ",price:55.00,cat:"bbq"},{id:36,name:"Whole Chicken For BBQ",price:35.00,cat:"bbq"},{id:37,name:"Herb & Butter Chicken Skewers per 500gr",price:37.50,cat:"bbq"},{id:38,name:"Pepper & Mustard Chicken Skewers 500gr",price:37.50,cat:"bbq"},{id:39,name:"Turkish Kebab per 500gr",price:64.50,cat:"bbq"},{id:40,name:"Chopped Lamb Kofta per 500gr",price:39.00,cat:"bbq"},{id:41,name:"Kofta Dough per 500gr",price:39.00,cat:"bbq"},{id:42,name:"BBQ Chicken Wings per 500gr",price:13.00,cat:"bbq"},{id:43,name:"Naemi Lamb Shortloin B/In per 500gr",price:65.00,cat:"bbq"},{id:44,name:"Naemi Lamb Neck per 500gr",price:64.00,cat:"bbq"},{id:45,name:"Naemi Lamb Breast Ribs per 500gr",price:64.00,cat:"bbq"},{id:46,name:"Naemi Lamb Leg B/Less per 500gr",price:75.00,cat:"bbq"},{id:47,name:"Naemi Lamb Mince per 250gr",price:37.50,cat:"bbq"},
+  {id:48,name:"Aust Angus Grain Fed Tenderloin Whole KG",price:287.00,cat:"steaks"},{id:49,name:"Aust Angus Grain Fed Tenderloin Portion 500gr",price:180.00,cat:"steaks"},{id:50,name:"Aust Angus Grain Fed Beef Striploin per 500gr",price:106.50,cat:"steaks"},{id:51,name:"Aust Angus Grain Fed Rib Eye per 500gr",price:122.50,cat:"steaks"},{id:52,name:"Aust Angus Grain Fed Short Ribs per 500gr",price:70.50,cat:"steaks"},{id:53,name:"MBS 4-5 Wagyu Beef Tenderloin Whole per kilo",price:515.00,cat:"steaks"},{id:54,name:"MBS 4-5 Wagyu Beef Tenderloin Portion 500gr",price:357.50,cat:"steaks"},{id:55,name:"MBS 4-5 Wagyu Beef Striploin per 500gr",price:204.50,cat:"steaks"},{id:56,name:"MBS 4-5 Wagyu Beef Rib Eye per 500gr",price:214.50,cat:"steaks"},{id:57,name:"MBS 4-5 Wagyu Beef Flap Meat per 500gr",price:137.50,cat:"steaks"},{id:58,name:"MBS 4-5 Wagyu Beef Pichana Steaks per 500gr",price:137.50,cat:"steaks"},{id:59,name:"MBS 4-5 Wagyu Beef Flat Iron Steak per 500gr",price:134.50,cat:"steaks"},{id:60,name:"Aust Black Angus Grain Fed Tenderloin Whole KG",price:299.00,cat:"steaks"},{id:61,name:"Aust Black Angus Tenderloin Portion 500gr",price:190.00,cat:"steaks"},{id:62,name:"Aust Black Angus Grain Fed Beef Striploin 500gr",price:109.50,cat:"steaks"},{id:63,name:"Aust Black Angus Grain Fed Rib Eye 500gr",price:135.00,cat:"steaks"},{id:64,name:"Aust Black Angus Grain Fed T.Bone per 500gr",price:119.50,cat:"steaks"},{id:65,name:"Aust Black Angus Grain Fed Prime Rib per kilo",price:219.00,cat:"steaks"},{id:66,name:"Aust Black Angus Grain Fed Flap Meat 500gr",price:82.50,cat:"steaks"},{id:67,name:"Aust Black Angus Grain Fed Tomahawk per kilo",price:215.00,cat:"steaks"},{id:68,name:"Australian Black Angus Beef Brisket per 500gr",price:59.50,cat:"steaks"},{id:69,name:"MBS 6-7 Wagyu Beef Tenderloin Whole KG",price:630.00,cat:"steaks"},{id:70,name:"MBS 6-7 Wagyu Beef Tenderloin Portion 500gr",price:392.50,cat:"steaks"},{id:71,name:"MBS 6-7 Wagyu Beef Striploin 500gr",price:242.50,cat:"steaks"},{id:72,name:"MBS 6-7 Wagyu Beef Rib Eye 500gr",price:255.00,cat:"steaks"},{id:73,name:"MBS 6-7 Wagyu Beef Flap Meat",price:147.50,cat:"steaks"},{id:74,name:"MBS 6-7 Wagyu Beef Picana 500gr",price:147.50,cat:"steaks"},{id:75,name:"MBS 6-7 Wagyu Flat Iron Steak 500gr",price:199.50,cat:"steaks"},{id:76,name:"MBS 8-9 Wagyu Tenderloin Whole KG",price:656.00,cat:"steaks"},{id:77,name:"MBS 8-9 Wagyu Tenderloin Portion 500gr",price:482.50,cat:"steaks"},{id:78,name:"MBS 8-9 Wagyu Beef Striploin 500gr",price:366.00,cat:"steaks"},{id:79,name:"MBS 8-9 Wagyu Beef Rib Eye 500gr",price:410.00,cat:"steaks"},{id:80,name:"Russian Black Angus 250 Days Corn Fed Tenderloin Whole",price:310.00,cat:"steaks"},{id:81,name:"Russian B.Angus 250 Days Corn Fed Tenderloin Portion 500gr",price:194.50,cat:"steaks"},{id:82,name:"Russian Black Angus 250 Days Corn Fed Rib Eye per 500gr",price:137.50,cat:"steaks"},{id:83,name:"Russian Black Angus 250 Days Corn Fed Striploin per 500gr",price:112.50,cat:"steaks"},{id:84,name:"Kofta with Tahini Sauce Tray",price:130.00,cat:"steaks"},{id:85,name:"Kofta with Tomato Sauce Tray",price:110.00,cat:"steaks"},{id:86,name:"Roasting for Shoulder Lamb",price:92.00,cat:"steaks"},{id:87,name:"Lamb Shank with Vegetables Tray",price:114.00,cat:"steaks"},{id:88,name:"Lamb Chops with Vegetables Tray",price:189.00,cat:"steaks"},{id:89,name:"Marinated Chicken with Vegetables Tray",price:65.00,cat:"steaks"},{id:90,name:"Brazilian Beef Tenderloin Whole",price:128.00,cat:"steaks"},{id:91,name:"New Zealand Grass Fed Beef Striploin per 500gr",price:106.50,cat:"steaks"},{id:92,name:"N.Z Grass Fed Beef Cubes per 500gr",price:44.50,cat:"steaks"},{id:93,name:"Beef Topside Barazilian per 500gr",price:29.50,cat:"steaks"},{id:94,name:"N.Z Grass Fed Rump Cap per 500gr",price:92.50,cat:"steaks"},{id:95,name:"N.Z Grass Fed Beef Escaloppini per 500gr",price:44.50,cat:"steaks"},{id:96,name:"N.Z Grass Fed Beef Stir Fry per 500gr",price:44.50,cat:"steaks"},{id:97,name:"N.Z Grass Fed Beef Mince 250gr",price:22.25,cat:"steaks"},{id:98,name:"Grass Fed N.Z Tenderloin whole kg",price:287.00,cat:"steaks"},{id:99,name:"N.Z Grass Fed Beef Tenderloin Portion per 500gr",price:180.00,cat:"steaks"},{id:100,name:"N.Z Grass Fed Beef Prime Rib KG",price:250.00,cat:"steaks"},{id:101,name:"New Zealand Grass Fed Beef Rib Eye per 500gr",price:122.50,cat:"steaks"},{id:102,name:"N.Z Grass fed Beef Brisket per 500gr",price:59.50,cat:"steaks"},{id:103,name:"N.Z Grass fed Flap Meat per 500gr",price:80.00,cat:"steaks"},{id:104,name:"N.Z Grass Fed Beef Chuck Roll per 500gr",price:61.00,cat:"steaks"},{id:105,name:"N.Z Grass Fed Beef Rump per 500gr",price:56.00,cat:"steaks"},{id:106,name:"N.Z Grass Fed Beef Top Side per 500gr",price:43.00,cat:"steaks"},{id:107,name:"N.Z Grass Fed Flank steak per 500gr",price:77.50,cat:"steaks"},{id:108,name:"N.Z Grass Fed Short Ribs per 500gr",price:70.50,cat:"steaks"},{id:109,name:"New Zealand Grass Fed Beef T.Bone Steak 500gr",price:117.50,cat:"steaks"},{id:110,name:"Brazilian Beef Tenderloin Portion per 500gr",price:74.00,cat:"steaks"},{id:111,name:"Brazilian Beef Striploin per 500gr",price:34.50,cat:"steaks"},{id:112,name:"Brazilian Beef Rib Eye per 500gr",price:34.50,cat:"steaks"},{id:113,name:"Brazilian Beef Cubes per 500gr",price:29.50,cat:"steaks"},{id:114,name:"Brazilian Minced Beef per 250gr",price:14.75,cat:"steaks"},{id:115,name:"Brazilian Beef Eye Round per 500gr",price:29.50,cat:"steaks"},{id:116,name:"Dutch Milk Fed Veal Tenderloin per KG",price:265.00,cat:"steaks"},{id:117,name:"Veal Osso Bucco per 500gr",price:51.75,cat:"steaks"},{id:118,name:"Dutch Milk Fed Veal Striploin per 500gr",price:124.00,cat:"steaks"},{id:119,name:"Dutch Milk Fed Veal Top Side per 500gr",price:105.00,cat:"steaks"},{id:120,name:"Dutch Milk Fed Veal Scallopini per 500gr",price:105.00,cat:"steaks"},{id:121,name:"Dutch Milk Fed Veal Ribeye per 500gr",price:144.00,cat:"steaks"},{id:122,name:"Dutch Milk Fed Veal Cubes per 250gr",price:52.50,cat:"steaks"},{id:123,name:"Dutch Milk Fed Veal Strips per 250gr",price:52.50,cat:"steaks"},{id:124,name:"Naemi Local Lamb Whole per kilo",price:118.00,cat:"steaks"},{id:125,name:"Naemi Lamb Leg per 500gr",price:64.00,cat:"steaks"},{id:126,name:"Naemi Lamb Chops per 500gr",price:65.00,cat:"steaks"},{id:127,name:"Naemi Lamb Shoulder per 500gr",price:64.00,cat:"steaks"},{id:128,name:"Australian Lamb Leg Roast per 500gr",price:139.50,cat:"steaks"},{id:129,name:"Australian Lamb Shoulder Roast per 500gr",price:119.50,cat:"steaks"},{id:130,name:"Australian Lamb Chops per 500gr",price:82.50,cat:"steaks"},{id:131,name:"Australian Lamb Mince per 250gr",price:21.25,cat:"steaks"},{id:132,name:"Australian Lamb Hindshanks per 500gr",price:37.75,cat:"steaks"},
+  {id:133,name:"Chopped Burger (100g or 180g)",price:119.00,cat:"burgers"},{id:134,name:"Chef Beef Burger (100g or 180g)",price:119.00,cat:"burgers"},{id:135,name:"Extra Lean Beef Burger (100g or 180g)",price:119.00,cat:"burgers"},{id:136,name:"Grass Fed Beef Burger (100g or 180g)",price:105.00,cat:"burgers"},{id:137,name:"Wagyu Beef Burger (100g or 180g)",price:159.00,cat:"burgers"},{id:138,name:"Marguez Lamb Sausage per 500gr",price:42.50,cat:"burgers"},{id:139,name:"Lebanese Sausage per 500gr",price:42.50,cat:"burgers"},{id:140,name:"Arabic Style Sausage per 500gr",price:44.50,cat:"burgers"},{id:141,name:"Chicken with Cheese Sausage per 500gr",price:35.00,cat:"burgers"},{id:142,name:"Armenian Style Sausages per 500gr",price:47.50,cat:"burgers"},{id:143,name:"German Style Sausages per 500gr",price:48.50,cat:"burgers"},{id:144,name:"Chopped Smoked Hotdog per 500gr",price:52.50,cat:"burgers"},{id:145,name:"Chorizo Style Beef Sausage per 500gr",price:46.00,cat:"burgers"},{id:146,name:"Frankfurt Style Sausage per 500gr",price:48.50,cat:"burgers"},{id:147,name:"Fresh Lamb Sausages per 500gr",price:39.50,cat:"burgers"},{id:148,name:"Breakfast Veal Sausage per 500gr",price:99.50,cat:"burgers"},{id:149,name:"Jalapeno Cheddar Hot Dog per 500gr",price:52.00,cat:"burgers"},{id:150,name:"South African Boerewors per 500gr",price:42.50,cat:"burgers"},{id:151,name:"Fresh Chicken Sausage per 500gr",price:29.50,cat:"burgers"},{id:152,name:"Beef Escalope KG",price:95.00,cat:"burgers"},{id:153,name:"Chicken Nugget KG",price:59.00,cat:"burgers"},{id:154,name:"Italian Meat Roll Stuffed with Vegetables and Cheese",price:93.00,cat:"burgers"},{id:155,name:"Chicken Luly Pop KG",price:59.00,cat:"burgers"},{id:156,name:"Spicy Chicken and Cheese Balls KG",price:75.00,cat:"burgers"},{id:157,name:"Garlic & Ginger Chicken Thighs KG",price:62.00,cat:"burgers"},{id:158,name:"Chicken Rolls with Cheese KG",price:69.00,cat:"burgers"},{id:159,name:"Chicken Stir-Fry KG",price:63.50,cat:"burgers"},{id:160,name:"Dough Kobbeh KG",price:63.00,cat:"burgers"},{id:161,name:"Chicken Lollipops Drumsticks KG",price:39.00,cat:"burgers"},
+  {id:162,name:"Potato Buns Small x 2",price:3.50,cat:"bread"},{id:163,name:"Potato Buns Big x 2",price:4.50,cat:"bread"},{id:164,name:"Ciabatta Bread x 2",price:5.00,cat:"bread"},{id:165,name:"PAN AU LAIT BUN 35g 6pcs",price:5.00,cat:"bread"},{id:166,name:"Potato Roll Hot Dog x 2",price:3.80,cat:"bread"},
+  {id:167,name:"Chicken Breast Stuffed with Spinach and Cheese KG",price:67.00,cat:"readycook"},{id:168,name:"Stuffed Mushrooms Per 500gr",price:50.00,cat:"readycook"},{id:169,name:"Stuffed Double Baked Potatoes Per 500gr",price:28.50,cat:"readycook"},{id:170,name:"Turkey Stuffed Marinated Ready to Cook KG",price:77.80,cat:"readycook"},{id:171,name:"Fresh Chicken Kiev KG",price:64.00,cat:"readycook"},
+  {id:172,name:"English White Cheddar 250gr",price:14.50,cat:"cheese"},{id:173,name:"Swiss Gruyere 250gr",price:60.25,cat:"cheese"},{id:174,name:"Swiss Emmental Cheese 250gr",price:41.63,cat:"cheese"},{id:175,name:"Monetary Jack 250gr",price:19.75,cat:"cheese"},{id:176,name:"Parmiggiano Reggiano 24 month 250gr",price:66.25,cat:"cheese"},{id:177,name:"Mozzerela Cheese 250gr",price:13.75,cat:"cheese"},{id:178,name:"Smoked Cheese 250gr",price:19.00,cat:"cheese"},{id:179,name:"French Brie Cheese 250gr",price:38.25,cat:"cheese"},{id:180,name:"Manchego Cheese 250gr",price:55.00,cat:"cheese"},{id:181,name:"Italian Beef Bresaola 250gr",price:132.25,cat:"cheese"},{id:182,name:"Spicy Beef Salami Italian 250gr",price:79.75,cat:"cheese"},{id:183,name:"Regular Beef Salami Italian 250gr",price:71.25,cat:"cheese"},{id:184,name:"Grana Padano Cheese 250gr",price:34.50,cat:"cheese"},{id:185,name:"Comte Cheese 250gr",price:62.00,cat:"cheese"},{id:186,name:"Gorgonzola Sharp Cheese Italy 250gr",price:59.25,cat:"cheese"},{id:187,name:"Chever Goat Cheese White 250gr",price:49.00,cat:"cheese"},{id:188,name:"Provolone Cheese Italy 250gr",price:33.25,cat:"cheese"},{id:189,name:"Swiss Appenzeller Cheese 250gr",price:75.75,cat:"cheese"},{id:190,name:"Pecorino Cheese with Truffle 250gr",price:102.50,cat:"cheese"},{id:191,name:"Tete De Moine Cheese Swiss 250gr",price:82.00,cat:"cheese"},{id:192,name:"Racllete Cheese France 250gr",price:51.25,cat:"cheese"},{id:193,name:"Cheese Platter XL",price:460.00,cat:"cheese"},{id:194,name:"Cheese Platter Small",price:95.00,cat:"cheese"},{id:195,name:"Cheese Platter Medium",price:195.00,cat:"cheese"},{id:196,name:"Cheese Platter Large",price:315.00,cat:"cheese"},
+  {id:197,name:"Orient Garden Yellow Mustard 227g",price:11.50,cat:"pasta"},{id:209,name:"RUMMO Rigatoni No 50 500g",price:17.50,cat:"pasta"},{id:259,name:"Maldon Sea Salt 125g",price:28.00,cat:"salt"},{id:260,name:"Maldon Sea Salt 250g",price:43.00,cat:"salt"},{id:261,name:"Madon Smoked Sea Salt 125g",price:40.50,cat:"salt"},{id:262,name:"Maldon Sea Salt 1.4kg",price:229.00,cat:"salt"},{id:263,name:"Caber Pink Himalayan Salt 800g",price:35.50,cat:"salt"},
+  {id:264,name:"Box Chopped Burger 100g x 4 Pcs",price:109.00,cat:"burgerbox"},{id:265,name:"Box Chopped Burger 100g x 8 Pcs",price:158.00,cat:"burgerbox"},{id:266,name:"Box Chopped Burger 180g x 4 Pcs",price:136.00,cat:"burgerbox"},{id:267,name:"Box Chopped Burger 180g x 8 Pcs",price:234.00,cat:"burgerbox"},{id:268,name:"Box Chef Burger 100g x 4 Pcs",price:104.00,cat:"burgerbox"},{id:269,name:"Box Chef Burger 100g x 8 Pcs",price:149.00,cat:"burgerbox"},{id:270,name:"Box Extra Lean Burger 100g x 4 Pcs",price:109.00,cat:"burgerbox"},{id:271,name:"Box Extra Lean Burger 100g x 8 Pcs",price:158.00,cat:"burgerbox"},{id:272,name:"Box Extra Lean Burger 180g x 4 Pcs",price:136.00,cat:"burgerbox"},{id:273,name:"Box Extra Lean Burger 180g x 8 Pcs",price:234.00,cat:"burgerbox"},{id:274,name:"Box Grass Fed Burger 100g x 4 Pcs",price:104.00,cat:"burgerbox"},{id:275,name:"Box Grass Fed Burger 100g x 8 Pcs",price:150.00,cat:"burgerbox"},{id:276,name:"Box Grass Fed Burger 180g x 4 Pcs",price:131.00,cat:"burgerbox"},{id:277,name:"Box Grass Fed Burger 180g x 8 Pcs",price:225.00,cat:"burgerbox"},{id:278,name:"Box Wagyu Beef Burger 100g x 4 Pcs",price:138.00,cat:"burgerbox"},{id:279,name:"Box Wagyu Beef Burger 100g x 8 Pcs",price:215.00,cat:"burgerbox"},{id:280,name:"Box Wagyu Beef Burger 180g x 4 Pcs",price:210.00,cat:"burgerbox"},{id:281,name:"Box Wagyu Beef Burger 180g x 8 Pcs",price:375.00,cat:"burgerbox"},{id:282,name:"Box Chicken Burger 100gm x 4 pcs",price:95.00,cat:"burgerbox"},{id:283,name:"Box Chicken Burger 100gm x 8 pcs",price:115.00,cat:"burgerbox"}
+];
+
+var lang = "ar";
+var currentRole = null;
+var currentTab = null;
+var selectedRole = null;
+var orders = [];
+var menu = MENU_DATA.map(function(m){ return {id:m.id, name:m.name, price:m.price, cat:m.cat}; });
+var showAdminForm = false;
+var editingId = null;
+var lastSync = null;
+var autoTimer = null;
+var orderCounter = 1;
+
+function t(a, e) { return lang === "ar" ? a : e; }
+
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function getCat(id) {
+  for (var i = 0; i < CATEGORIES.length; i++) {
+    if (CATEGORIES[i].id === id) return CATEGORIES[i];
+  }
+  return {ar:"", en:"", emoji:""};
+}
+
+function getItem(id) {
+  for (var i = 0; i < menu.length; i++) {
+    if (menu[i].id == id) return menu[i];
+  }
+  return null;
+}
+
+function showToast(msg, type) {
+  var el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "show " + (type || "ok");
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.className = ""; }, 3000);
+}
+
+// ---- LOGIN ----
+function selectRole(role) {
+  selectedRole = role;
+  var roles = ["manager","kitchen","admin","gm"];
+  for (var i = 0; i < roles.length; i++) {
+    var el = document.getElementById("role-" + roles[i]);
+    if (el) el.className = "role-btn" + (roles[i] === role ? " selected" : "");
+  }
+  var names = {
+    manager: t("المدير","Manager"),
+    kitchen: t("المطبخ","Kitchen"),
+    admin: t("الإدارة","Admin"),
+    gm: t("المدير العام","General Manager")
+  };
+  document.getElementById("pw-box").style.display = "block";
+  document.getElementById("pw-label").textContent = t("كلمة المرور لـ ","Password for ") + names[role];
+  document.getElementById("pw-error").textContent = "";
+  document.getElementById("pw-input").value = "";
+  setTimeout(function(){ document.getElementById("pw-input").focus(); }, 100);
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("pw-input").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") tryLogin();
+  });
+});
+
+function tryLogin() {
+  if (!selectedRole) return;
+  var entered = document.getElementById("pw-input").value;
+  if (entered === PASSWORDS[selectedRole]) {
+    currentRole = selectedRole;
+    currentTab = (selectedRole === "admin") ? "admin" : (selectedRole === "gm") ? "reports" : selectedRole;
+    document.getElementById("login-screen").className = "hidden";
+    document.getElementById("app").className = "visible";
+    buildTabs();
+    if (currentRole === "manager" || currentRole === "kitchen" || currentRole === "admin" || currentRole === "gm") {
+      loadOrders();
+      autoTimer = setInterval(loadOrders, 30000);
+    }
+    render();
+  } else {
+    document.getElementById("pw-error").textContent = t("❌ كلمة المرور غير صحيحة","❌ Incorrect password");
+    document.getElementById("pw-input").value = "";
+    var inp = document.getElementById("pw-input");
+    inp.style.borderColor = "#ff4444";
+    setTimeout(function(){ inp.style.borderColor = ""; }, 1000);
+  }
+}
+
+function logout() {
+  if (autoTimer) clearInterval(autoTimer);
+  currentRole = null; currentTab = null; selectedRole = null;
+  orders = [];
+  document.getElementById("login-screen").className = "";
+  document.getElementById("app").className = "";
+  document.getElementById("pw-box").style.display = "none";
+  document.getElementById("pw-input").value = "";
+  document.getElementById("pw-error").textContent = "";
+  var roles = ["manager","kitchen","admin","gm"];
+  for (var i = 0; i < roles.length; i++) {
+    var el = document.getElementById("role-" + roles[i]);
+    if (el) el.className = "role-btn";
+  }
+}
+
+// ---- TABS ----
+function buildTabs() {
+  var tabDefs = {
+    manager: [{id:"manager", icon:"📋", ar:"المدير", en:"Manager"}],
+    kitchen: [{id:"kitchen", icon:"👨‍🍳", ar:"المطبخ", en:"Kitchen"}],
+    admin: [
+      {id:"manager", icon:"📋", ar:"المدير", en:"Manager"},
+      {id:"kitchen", icon:"👨‍🍳", ar:"المطبخ", en:"Kitchen"},
+      {id:"admin",   icon:"⚙️", ar:"الإدارة", en:"Admin"}
+    ],
+    gm: [
+      {id:"reports", icon:"📊", ar:"التقارير", en:"Reports"},
+      {id:"manager", icon:"📋", ar:"الطلبات", en:"Orders"},
+      {id:"kitchen", icon:"👨‍🍳", ar:"المطبخ", en:"Kitchen"}
+    ]
+  };
+
+  var tabs = tabDefs[currentRole] || [];
+  var html = "";
+  for (var i = 0; i < tabs.length; i++) {
+    var tb = tabs[i];
+    var active = currentTab === tb.id ? " active" : "";
+    html += '<button class="tab-btn' + active + '" onclick="switchTab(\'' + tb.id + '\')">';
+    html += '<span class="tab-icon">' + tb.icon + '</span>';
+    html += '<span>' + (lang === "ar" ? tb.ar : tb.en) + '</span>';
+    html += '</button>';
+  }
+  document.getElementById("tabs").innerHTML = html;
+
+  var roleNames = {
+    manager: t("المدير","Manager"),
+    kitchen: t("المطبخ","Kitchen"),
+    admin: t("الإدارة","Admin"),
+    gm: t("المدير العام","General Manager")
+  };
+  document.getElementById("header-title").textContent = "🥩 Chopped — " + roleNames[currentRole];
+  document.getElementById("logout-btn").textContent = t("🔒 خروج","🔒 Logout");
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  var btns = document.querySelectorAll(".tab-btn");
+  for (var i = 0; i < btns.length; i++) {
+    var onclick = btns[i].getAttribute("onclick") || "";
+    btns[i].className = "tab-btn" + (onclick.indexOf("'" + tab + "'") >= 0 ? " active" : "");
+  }
+  render();
+}
+
+// ---- API ----
+async function loadOrders() {
+  if (!IS_CONFIGURED) return;
+  try {
+    var data = await supabaseFetch("orders?select=*&order=id.desc", { method: "GET" });
+    orders = data.map(function(o) {
+      return {
+        id: "#" + String(o.id).padStart(3,"0"),
+        customer: o.customer,
+        items: typeof o.items === "string" ? JSON.parse(o.items) : (o.items || []),
+        total: o.total,
+        status: o.status || "new",
+        timestamp: o.created_at ? new Date(o.created_at).toLocaleString("ar-SA") : "",
+        _raw_id: o.id
+      };
+    });
+    lastSync = new Date();
+    render();
+  } catch(e) { console.error("loadOrders error:", e); }
+}
+
+async function updateStatus(orderId, status) {
+  // Optimistic update
+  orders = orders.map(function(o) {
+    return o.id === orderId ? Object.assign({}, o, {status: status}) : o;
+  });
+  render();
+  try {
+    var rawId = null;
+    for (var i = 0; i < orders.length; i++) {
+      if (orders[i].id === orderId) { rawId = orders[i]._raw_id; break; }
+    }
+    if (rawId !== null) {
+      await supabaseFetch("orders?id=eq." + rawId, {
+        method: "PATCH",
+        body: JSON.stringify({ status: status })
+      });
+    }
+    showToast(t("تم التحديث ✓","Updated ✓"));
+  } catch(e) {
+    console.error("updateStatus error:", e);
+    showToast(t("خطأ في التحديث","Update error"), "err");
+  }
+}
+
+// ---- RENDER ----
+function render() {
+  if (!currentRole || !currentTab) return;
+  var c = document.getElementById("content");
+  if (currentTab === "manager") c.innerHTML = renderManager();
+  else if (currentTab === "kitchen") c.innerHTML = renderKitchen();
+  else if (currentTab === "admin") c.innerHTML = renderAdmin();
+  else if (currentTab === "reports") c.innerHTML = renderReports();
+}
+
+// ---- MANAGER ----
+function renderManager() {
+  var active = orders.filter(function(o){ return o.status !== "done" && o.status !== "rejected"; });
+  var html = '<div class="section-row">';
+  html += '<div class="section-title">' + t("الطلبات","Orders") + ' (' + active.length + ')</div>';
+  html += '<button class="refresh-btn" onclick="loadOrders()">🔄 ' + t("تحديث","Refresh") + '</button></div>';
+  if (lastSync) html += '<div class="sync-info">' + t("آخر تحديث:","Last sync:") + ' ' + lastSync.toLocaleTimeString() + ' — ' + t("تلقائي كل 30 ث","auto every 30s") + '</div>';
+  if (!IS_CONFIGURED) html += '<div class="alert">⚠️ Demo — ' + t("الطلبات لن تُحفظ","orders not saved") + '</div>';
+  if (active.length === 0) { html += '<div class="empty">✅ ' + t("لا توجد طلبات نشطة","No active orders") + '</div>'; return html; }
+  for (var i = 0; i < active.length; i++) {
+    var o = active[i];
+    var sc = {new:"s-new", confirmed:"s-confirmed", cooking:"s-cooking"}[o.status] || "";
+    var sl = {new:t("جديد","New"), confirmed:t("مؤكد","Confirmed"), cooking:t("قيد التحضير","Cooking")}[o.status] || o.status;
+    html += '<div class="card"><div class="order-header"><div>';
+    html += '<div class="order-id">' + esc(o.id) + '</div>';
+    html += '<div class="order-customer">' + esc(o.customer) + '</div>';
+    html += '<div class="order-time">' + esc(o.timestamp || "") + '</div></div>';
+    html += '<div style="text-align:end"><span class="status-badge ' + sc + '">' + sl + '</span>';
+    html += '<div class="order-total">' + o.total + ' ' + t("ر.س","SAR") + '</div></div></div>';
+    html += '<div class="order-items-text">';
+    if (Array.isArray(o.items)) {
+      for (var j = 0; j < o.items.length; j++) {
+        var it = o.items[j];
+        html += '• ' + esc(it.name) + ' × ' + it.qty + ' — ' + (it.price * it.qty).toFixed(2) + ' ' + t("ر.س","SAR") + '<br>';
+      }
+    }
+    html += '</div><div class="order-actions">';
+    if (o.status === "new") {
+      html += '<button class="btn-reject" onclick="updateStatus(\'' + o.id + '\',\'rejected\')">' + t("رفض","Reject") + '</button>';
+      html += '<button class="btn-confirm" onclick="updateStatus(\'' + o.id + '\',\'confirmed\')">' + t("تأكيد","Confirm") + '</button>';
+    } else if (o.status === "confirmed") {
+      html += '<button class="btn-kitchen" onclick="updateStatus(\'' + o.id + '\',\'cooking\')">' + t("إرسال للمطبخ 👨‍🍳","Send to Kitchen 👨‍🍳") + '</button>';
+    } else if (o.status === "cooking") {
+      html += '<div class="cooking-label">🔥 ' + t("قيد التحضير...","Cooking...") + '</div>';
+    }
+    html += '</div></div>';
+  }
+  return html;
+}
+
+// ---- KITCHEN ----
+function renderKitchen() {
+  var cooking = orders.filter(function(o){ return o.status === "cooking"; });
+  var html = '<div class="section-row">';
+  html += '<div class="section-title">👨‍🍳 ' + t("المطبخ","Kitchen") + ' (' + cooking.length + ')</div>';
+  html += '<button class="refresh-btn" onclick="loadOrders()">🔄 ' + t("تحديث","Refresh") + '</button></div>';
+  if (cooking.length === 0) { html += '<div class="empty">🍽️ ' + t("لا توجد طلبات للتحضير","No orders to prepare") + '</div>'; return html; }
+  for (var i = 0; i < cooking.length; i++) {
+    var o = cooking[i];
+    html += '<div class="kitchen-card">';
+    html += '<div class="kitchen-id">' + esc(o.id) + '</div>';
+    html += '<div class="kitchen-name">' + esc(o.customer) + '</div>';
+    if (Array.isArray(o.items)) {
+      for (var j = 0; j < o.items.length; j++) {
+        var it = o.items[j];
+        html += '<div class="kitchen-item"><span>' + esc(it.name) + '</span><span class="kitchen-qty">× ' + it.qty + '</span></div>';
+      }
+    }
+    html += '<button class="btn-done" onclick="updateStatus(\'' + o.id + '\',\'done\')">✅ ' + t("تم التحضير","Done") + '</button></div>';
+  }
+  return html;
+}
+
+// ---- REPORTS ----
+function renderReports() {
+  var total = orders.length;
+  var done = orders.filter(function(o){ return o.status === "done"; }).length;
+  var active = orders.filter(function(o){ return o.status !== "done" && o.status !== "rejected"; }).length;
+  var rejected = orders.filter(function(o){ return o.status === "rejected"; }).length;
+
+  var revenue = 0;
+  var customers = {};
+  var itemCount = {};
+
+  for (var i = 0; i < orders.length; i++) {
+    var o = orders[i];
+    if (o.status === "done") {
+      revenue += parseFloat(o.total) || 0;
+    }
+    if (o.customer) {
+      customers[o.customer] = (customers[o.customer] || 0) + 1;
+    }
+    if (Array.isArray(o.items)) {
+      for (var j = 0; j < o.items.length; j++) {
+        var it = o.items[j];
+        if (it.name) {
+          itemCount[it.name] = (itemCount[it.name] || 0) + (it.qty || 1);
+        }
+      }
+    }
+  }
+
+  // Top customers
+  var custArr = Object.entries(customers).sort(function(a,b){ return b[1]-a[1]; }).slice(0,5);
+  // Top items
+  var itemArr = Object.entries(itemCount).sort(function(a,b){ return b[1]-a[1]; }).slice(0,5);
+
+  var html = '<div class="section-row">';
+  html += '<div class="section-title">📊 ' + t("التقارير","Reports") + '</div>';
+  html += '<button class="refresh-btn" onclick="loadOrders().then(render)">🔄 ' + t("تحديث","Refresh") + '</button></div>';
+
+  if (!IS_CONFIGURED) html += '<div class="alert">⚠️ Demo mode — ' + t("البيانات وهمية","dummy data") + '</div>';
+
+  // Stats grid
+  html += '<div class="stat-grid">';
+  html += '<div class="stat-card"><div class="stat-val">' + total + '</div><div class="stat-lbl">📦 ' + t("إجمالي الطلبات","Total Orders") + '</div></div>';
+  html += '<div class="stat-card" style="border-right-color:#22c55e"><div class="stat-val" style="color:#22c55e">' + done + '</div><div class="stat-lbl">✅ ' + t("طلبات مكتملة","Completed") + '</div></div>';
+  html += '<div class="stat-card" style="border-right-color:#3b82f6"><div class="stat-val" style="color:#3b82f6">' + active + '</div><div class="stat-lbl">⏳ ' + t("قيد التنفيذ","Active") + '</div></div>';
+  html += '<div class="stat-card" style="border-right-color:#D4A574"><div class="stat-val" style="color:#D4A574">' + revenue.toFixed(0) + '</div><div class="stat-lbl">💰 ' + t("الإيرادات (ر.س)","Revenue (SAR)") + '</div></div>';
+  html += '</div>';
+
+  // Unique customers
+  html += '<div class="report-section">';
+  html += '<div class="report-title">👥 ' + t("عدد العملاء الفريدين","Unique Customers") + ' — <span style="color:#5C2D0E;font-size:20px">' + Object.keys(customers).length + '</span></div>';
+  if (custArr.length > 0) {
+    html += '<div style="font-size:12px;color:#8B7355;margin-bottom:8px">' + t("الأكثر طلباً:","Top customers:") + '</div>';
+    for (var i = 0; i < custArr.length; i++) {
+      html += '<div class="top-item"><span class="top-item-name">' + esc(custArr[i][0]) + '</span><span class="top-item-count">' + custArr[i][1] + ' ' + t("طلب","orders") + '</span></div>';
+    }
+  } else {
+    html += '<div style="font-size:13px;color:#8B7355">' + t("لا توجد بيانات بعد","No data yet") + '</div>';
+  }
+  html += '</div>';
+
+  // Top items
+  html += '<div class="report-section">';
+  html += '<div class="report-title">🔥 ' + t("الأكثر طلباً","Most Ordered") + '</div>';
+  if (itemArr.length > 0) {
+    for (var i = 0; i < itemArr.length; i++) {
+      html += '<div class="top-item"><span class="top-item-name">' + esc(itemArr[i][0]) + '</span><span class="top-item-count">× ' + itemArr[i][1] + '</span></div>';
+    }
+  } else {
+    html += '<div style="font-size:13px;color:#8B7355">' + t("لا توجد بيانات بعد","No data yet") + '</div>';
+  }
+  html += '</div>';
+
+  // Status breakdown
+  html += '<div class="report-section">';
+  html += '<div class="report-title">📈 ' + t("توزيع الحالات","Status Breakdown") + '</div>';
+  var statuses = [
+    {key:"new",    label:t("جديد","New"),          color:"#B5873A"},
+    {key:"confirmed",label:t("مؤكد","Confirmed"),  color:"#166534"},
+    {key:"cooking",label:t("قيد التحضير","Cooking"),color:"#dc2626"},
+    {key:"done",   label:t("مكتمل","Done"),         color:"#22c55e"},
+    {key:"rejected",label:t("مرفوض","Rejected"),   color:"#64748b"}
+  ];
+  for (var i = 0; i < statuses.length; i++) {
+    var st = statuses[i];
+    var cnt = orders.filter(function(o){ return o.status === st.key; }).length;
+    if (cnt === 0) continue;
+    var pct = total > 0 ? Math.round(cnt / total * 100) : 0;
+    html += '<div style="margin-bottom:10px">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">';
+    html += '<span style="color:#2C1810">' + st.label + '</span>';
+    html += '<span style="font-weight:700;color:' + st.color + '">' + cnt + ' (' + pct + '%)</span></div>';
+    html += '<div style="height:8px;background:#f0ebe0;border-radius:4px;overflow:hidden">';
+    html += '<div style="height:100%;width:' + pct + '%;background:' + st.color + ';border-radius:4px;transition:width 0.5s"></div></div></div>';
+  }
+  html += '</div>';
+
+  if (lastSync) html += '<div class="sync-info" style="margin-top:8px">' + t("آخر تحديث:","Last sync:") + ' ' + lastSync.toLocaleTimeString() + '</div>';
+  return html;
+}
+
+// ---- ADMIN ----
+function renderAdmin() {
+  var html = '<div style="font-weight:600;font-size:15px;color:#2C1810;margin-bottom:14px">⚙️ ' + t("إدارة المنيو","Menu Management") + '</div>';
+  html += '<button class="add-toggle-btn" onclick="toggleForm()">' + (showAdminForm ? t("✕ إخفاء","✕ Hide") : t("➕ إضافة منتج","➕ Add Product")) + '</button>';
+  if (showAdminForm) {
+    var fi = editingId ? getItem(editingId) : null;
+    html += '<div class="form-card"><div style="font-weight:600;font-size:13px;margin-bottom:12px">' + (editingId ? t("✏️ تعديل","✏️ Edit") : t("➕ جديد","➕ New")) + '</div>';
+    html += '<div class="form-group" style="margin-bottom:10px"><label>' + t("الاسم *","Name *") + '</label>';
+    html += '<input class="text-input" id="f-name" value="' + esc(fi ? fi.name : "") + '" placeholder="e.g. Beef Steak 500gr"></div>';
+    html += '<div class="form-row"><div class="form-group"><label>' + t("السعر *","Price *") + '</label>';
+    html += '<input class="text-input" id="f-price" type="number" value="' + (fi ? fi.price : "") + '" placeholder="0.00" style="direction:ltr"></div>';
+    html += '<div class="form-group"><label>' + t("الفئة","Category") + '</label><select class="text-input" id="f-cat">';
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      var c = CATEGORIES[i];
+      var sel = (fi && fi.cat === c.id) ? " selected" : "";
+      html += '<option value="' + c.id + '"' + sel + '>' + c.emoji + ' ' + (lang === "ar" ? c.ar : c.en) + '</option>';
+    }
+    html += '</select></div></div><button class="save-btn" onclick="saveItem()">💾 ' + t("حفظ","Save") + '</button></div>';
+  }
+  for (var ci = 0; ci < CATEGORIES.length; ci++) {
+    var cat = CATEGORIES[ci];
+    var catItems = menu.filter(function(m){ return m.cat === cat.id; });
+    if (catItems.length === 0) continue;
+    html += '<div style="margin-bottom:20px"><div class="admin-section-title">' + cat.emoji + ' ' + (lang === "ar" ? cat.ar : cat.en) + ' (' + catItems.length + ')</div>';
+    for (var mi = 0; mi < catItems.length; mi++) {
+      var m = catItems[mi];
+      html += '<div class="admin-item"><div style="flex:1"><div class="admin-item-name">' + esc(m.name) + '</div>';
+      html += '<div class="admin-item-price">' + m.price.toFixed(2) + ' ' + t("ر.س","SAR") + '</div></div>';
+      html += '<div class="admin-actions-btns">';
+      html += '<button class="edit-btn" onclick="startEdit(' + m.id + ')">✏️</button>';
+      html += '<button class="del-btn" onclick="delItem(' + m.id + ')">🗑️</button>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+  }
+  return html;
+}
+
+function toggleForm() { showAdminForm = !showAdminForm; editingId = null; render(); }
+
+function startEdit(id) {
+  editingId = id; showAdminForm = true; render();
+  setTimeout(function(){
+    var el = document.querySelector(".form-card");
+    if (el) el.scrollIntoView({behavior:"smooth"});
+  }, 100);
+}
+
+function delItem(id) {
+  if (confirm(t("حذف هذا المنتج؟","Delete this product?"))) {
+    menu = menu.filter(function(m){ return m.id !== id; });
+    showToast(t("تم الحذف","Deleted"));
+    render();
+  }
+}
+
+function saveItem() {
+  var n = (document.getElementById("f-name") || {}).value || "";
+  var p = parseFloat((document.getElementById("f-price") || {}).value || 0);
+  var c = (document.getElementById("f-cat") || {}).value || "daily";
+  if (!n.trim() || !p) return showToast(t("اكمل البيانات","Fill all fields"), "err");
+  if (editingId) {
+    menu = menu.map(function(m){ return m.id === editingId ? {id:m.id, name:n, price:p, cat:c} : m; });
+    showToast(t("تم التعديل ✓","Updated ✓"));
+  } else {
+    menu.push({id: Date.now(), name: n, price: p, cat: c});
+    showToast(t("تمت الإضافة ✓","Added ✓"));
+  }
+  showAdminForm = false; editingId = null; render();
+}
+
+function setLang(l) {
+  lang = l;
+  var btns = document.querySelectorAll(".lang-btn");
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].className = "lang-btn" + (btns[i].textContent.trim() === (l === "ar" ? "ع" : "EN") ? " active" : "");
+  }
+  document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
+  document.documentElement.lang = l;
+  document.getElementById("rl-manager").textContent = t("المدير","Manager");
+  document.getElementById("rl-kitchen").textContent = t("المطبخ","Kitchen");
+  document.getElementById("rl-admin").textContent = t("الإدارة","Admin");
+  document.getElementById("rl-gm").textContent = t("المدير العام","General Manager");
+  document.getElementById("login-sub").textContent = t("اختر دورك وأدخل كلمة المرور","Choose your role and enter password");
+  if (currentRole) { buildTabs(); render(); }
+}
+</script>
+</body>
+</html>
