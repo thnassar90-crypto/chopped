@@ -19,7 +19,7 @@ button,input,select{font-family:inherit;cursor:pointer}
 input{cursor:text}
 ::-webkit-scrollbar{height:4px;width:4px}
 ::-webkit-scrollbar-thumb{background:#d4c4a0;border-radius:4px}
-#header{background:linear-gradient(135deg,#2C1810,#5C2D0E);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+#header{background:linear-gradient(135deg,#2C1810,#5C2D0E);padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 #header h1{color:#fff;font-size:16px;font-weight:700}
 #header p{color:#D4A574;font-size:11px;margin-top:2px}
 #lang-toggle{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:4px;display:flex;gap:2px}
