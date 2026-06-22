@@ -35,6 +35,9 @@ input{cursor:text}
 #header{background:linear-gradient(135deg,#2C1810,#5C2D0E);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 #header-title{color:#fff;font-size:15px;font-weight:700}
 #header-right{display:flex;align-items:center;gap:8px}
+#notif-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:50%;width:32px;height:32px;font-size:15px;color:#fff;display:flex;align-items:center;justify-content:center}
+@keyframes flashNew{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{box-shadow:0 0 0 6px rgba(220,38,38,0.35)}}
+.flash-new{animation:flashNew 1s ease-in-out 3;border:2px solid #dc2626!important}
 #lang-toggle{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:3px;display:flex;gap:2px}
 .lang-btn{padding:3px 9px;border-radius:16px;font-size:11px;border:none;background:transparent;color:rgba(255,255,255,0.7)}
 .lang-btn.active{background:#fff;color:#2C1810;font-weight:600}
@@ -144,6 +147,7 @@ input{cursor:text}
   <div id="header">
     <div id="header-title">🥩 Chopped</div>
     <div id="header-right">
+      <button id="notif-btn" onclick="enableNotifications()"></button>
       <div id="lang-toggle">
         <button class="lang-btn active" onclick="setLang('ar')">ع</button>
         <button class="lang-btn" onclick="setLang('en')">EN</button>
@@ -215,6 +219,66 @@ var editingId = null;
 var lastSync = null;
 var autoTimer = null;
 var orderCounter = 1;
+var notifEnabled = false;
+var knownOrderIds = null;
+var latestNewIds = [];
+var audioCtx = null;
+var alertTimer = null;
+var ringingIds = [];
+
+function playBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    for (var n = 0; n < 2; n++) {
+      (function(delay){
+        setTimeout(function(){
+          var osc = audioCtx.createOscillator();
+          var gain = audioCtx.createGain();
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.type = "sine"; osc.frequency.value = 880;
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.35);
+        }, delay);
+      })(n * 400);
+    }
+  } catch(e) { console.error("beep error:", e); }
+}
+
+function startAlertLoop() {
+  if (alertTimer) return;
+  playBeep();
+  alertTimer = setInterval(function(){
+    if (ringingIds.length === 0) { stopAlertLoop(); return; }
+    playBeep();
+  }, 4000);
+}
+
+function stopAlertLoop() {
+  if (alertTimer) { clearInterval(alertTimer); alertTimer = null; }
+}
+
+function acknowledgeOrder(orderId) {
+  ringingIds = ringingIds.filter(function(id){ return id !== orderId; });
+  latestNewIds = latestNewIds.filter(function(id){ return id !== orderId; });
+  if (ringingIds.length === 0) stopAlertLoop();
+  render();
+}
+
+function enableNotifications() {
+  notifEnabled = true;
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  playBeep();
+  render();
+}
+
+function disableNotifications() {
+  notifEnabled = false;
+  stopAlertLoop();
+  render();
+}
+var alertAudioCtx = null;
 
 function t(a, e) { return lang === "ar" ? a : e; }
 
@@ -364,10 +428,13 @@ async function loadOrders() {
   if (!IS_CONFIGURED) return;
   try {
     var data = await supabaseFetch("orders?select=*&order=id.desc", { method: "GET" });
-    orders = data.map(function(o) {
+    var newList = data.map(function(o) {
       return {
         id: "#" + String(o.id).padStart(3,"0"),
         customer: o.customer,
+        phone: o.phone || "",
+        compound: o.compound || "",
+        villa: o.villa || "",
         items: typeof o.items === "string" ? JSON.parse(o.items) : (o.items || []),
         total: o.total,
         status: o.status || "new",
@@ -375,6 +442,30 @@ async function loadOrders() {
         _raw_id: o.id
       };
     });
+    if (knownOrderIds !== null) {
+      var freshIds = [];
+      for (var i = 0; i < newList.length; i++) {
+        if (knownOrderIds.indexOf(newList[i]._raw_id) === -1) freshIds.push(newList[i]._raw_id);
+      }
+      if (freshIds.length > 0) {
+        latestNewIds = latestNewIds.concat(freshIds);
+        ringingIds = ringingIds.concat(freshIds);
+        if (notifEnabled) startAlertLoop();
+        render();
+      }
+    }
+    // إذا أي طلب جديد صار حالته غير "new" (تم قبوله) نوقف رنينه
+    ringingIds = ringingIds.filter(function(rid){
+      var o = newList.find(function(x){ return x._raw_id === rid; });
+      return o && o.status === "new";
+    });
+    latestNewIds = latestNewIds.filter(function(fid){
+      var o = newList.find(function(x){ return x._raw_id === fid; });
+      return o && o.status === "new";
+    });
+    if (ringingIds.length === 0) stopAlertLoop();
+    knownOrderIds = newList.map(function(o){ return o._raw_id; });
+    orders = newList;
     lastSync = new Date();
     render();
   } catch(e) { console.error("loadOrders error:", e); }
@@ -382,15 +473,14 @@ async function loadOrders() {
 
 async function updateStatus(orderId, status) {
   // Optimistic update
+  var rawId = null;
   orders = orders.map(function(o) {
-    return o.id === orderId ? Object.assign({}, o, {status: status}) : o;
+    if (o.id === orderId) { rawId = o._raw_id; return Object.assign({}, o, {status: status}); }
+    return o;
   });
+  if (rawId !== null) acknowledgeOrder(rawId);
   render();
   try {
-    var rawId = null;
-    for (var i = 0; i < orders.length; i++) {
-      if (orders[i].id === orderId) { rawId = orders[i]._raw_id; break; }
-    }
     if (rawId !== null) {
       await supabaseFetch("orders?id=eq." + rawId, {
         method: "PATCH",
@@ -406,12 +496,106 @@ async function updateStatus(orderId, status) {
 
 // ---- RENDER ----
 function render() {
+  var nb = document.getElementById("notif-btn");
+  if (nb) nb.innerHTML = notifEnabled ? "🔔" : "🔕";
   if (!currentRole || !currentTab) return;
   var c = document.getElementById("content");
   if (currentTab === "manager") c.innerHTML = renderManager();
   else if (currentTab === "kitchen") c.innerHTML = renderKitchen();
   else if (currentTab === "admin") c.innerHTML = renderAdmin();
   else if (currentTab === "reports") c.innerHTML = renderReports();
+}
+
+// ---- PRINT ----
+var BIZ_NAME_AR = "Chopped — شويد";
+var BIZ_NAME_EN = "Chopped";
+var BIZ_PHONE = "966558927634";
+
+function printReceipt(orderId){
+  var o = orders.find(function(x){ return x.id === orderId; });
+  if(!o) return;
+  printDoc(o, "receipt");
+}
+
+function printInvoice(orderId){
+  var o = orders.find(function(x){ return x.id === orderId; });
+  if(!o) return;
+  printDoc(o, "invoice");
+}
+
+function printDoc(o, kind){
+  var isInvoice = kind === "invoice";
+  var itemsHtml = "";
+  if (Array.isArray(o.items)) {
+    for (var j = 0; j < o.items.length; j++) {
+      var it = o.items[j];
+      var lineTotal = (it.price * it.qty).toFixed(2);
+      itemsHtml += '<tr><td>' + esc(it.name) + '</td><td style="text-align:center">' + it.qty + '</td>' +
+        (isInvoice ? '<td style="text-align:center">' + it.price.toFixed(2) + '</td>' : '') +
+        '<td style="text-align:left">' + lineTotal + '</td></tr>';
+    }
+  }
+  var vatRate = 0.15;
+  var totalNum = parseFloat(o.total) || 0;
+  var subTotal = isInvoice ? (totalNum / (1+vatRate)) : totalNum;
+  var vatAmount = isInvoice ? (totalNum - subTotal) : 0;
+
+  var html = '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>' +
+    (isInvoice ? 'Invoice' : 'Receipt') + ' ' + esc(o.id) + '</title><style>' +
+    'body{font-family:Tahoma,Arial,sans-serif;padding:16px;max-width:380px;margin:0 auto;color:#111}' +
+    '.center{text-align:center}' +
+    'h1{font-size:18px;margin-bottom:2px}' +
+    '.muted{color:#555;font-size:12px;margin-bottom:10px}' +
+    'hr{border:none;border-top:1px dashed #999;margin:10px 0}' +
+    'table{width:100%;border-collapse:collapse;font-size:13px}' +
+    'th{border-bottom:1px solid #333;padding:4px 2px;text-align:right;font-size:12px}' +
+    'td{padding:4px 2px;border-bottom:1px dotted #ddd}' +
+    '.row{display:flex;justify-content:space-between;font-size:13px;margin:3px 0}' +
+    '.total-row{display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin-top:8px}' +
+    '.badge{display:inline-block;background:#eee;border-radius:6px;padding:2px 8px;font-size:12px;margin-top:4px}' +
+    '.footer{text-align:center;font-size:11px;color:#777;margin-top:16px}' +
+    '@media print{body{padding:6px}}' +
+    '</style></head><body>';
+
+  html += '<div class="center"><h1>🍽️ ' + esc(BIZ_NAME_AR) + '</h1>';
+  html += '<div class="muted">' + t("جوال:","Phone:") + ' ' + esc(BIZ_PHONE) + '</div>';
+  html += '<div class="badge">' + (isInvoice ? t("فاتورة ضريبية مبسطة","Simplified Tax Invoice") : t("وصل توصيل","Delivery Receipt")) + '</div></div>';
+  html += '<hr>';
+
+  html += '<div class="row"><span>' + t("رقم الطلب","Order #") + '</span><strong>' + esc(o.id) + '</strong></div>';
+  html += '<div class="row"><span>' + t("التاريخ","Date") + '</span><span>' + esc(o.timestamp || new Date().toLocaleString("ar-SA")) + '</span></div>';
+  html += '<hr>';
+
+  html += '<div class="row"><span>' + t("العميل","Customer") + '</span><strong>' + esc(o.customer) + '</strong></div>';
+  if (o.phone) html += '<div class="row"><span>' + t("الجوال","Phone") + '</span><strong>' + esc(o.phone) + '</strong></div>';
+  if (o.compound) html += '<div class="row"><span>' + t("الكمباوند","Compound") + '</span><strong>' + esc(o.compound) + '</strong></div>';
+  if (o.villa) html += '<div class="row"><span>' + t("فيلا/شقة","Villa/Apt") + '</span><strong>' + esc(o.villa) + '</strong></div>';
+  html += '<hr>';
+
+  html += '<table><thead><tr><th>' + t("الصنف","Item") + '</th><th style="text-align:center">' + t("كمية","Qty") + '</th>' +
+    (isInvoice ? '<th style="text-align:center">' + t("سعر","Price") + '</th>' : '') +
+    '<th style="text-align:left">' + t("إجمالي","Total") + '</th></tr></thead><tbody>' + itemsHtml + '</tbody></table>';
+  html += '<hr>';
+
+  if (isInvoice) {
+    html += '<div class="row"><span>' + t("المجموع (بدون ضريبة)","Subtotal (excl. VAT)") + '</span><span>' + subTotal.toFixed(2) + ' ' + t("ر.س","SAR") + '</span></div>';
+    html += '<div class="row"><span>' + t("ضريبة القيمة المضافة 15%","VAT 15%") + '</span><span>' + vatAmount.toFixed(2) + ' ' + t("ر.س","SAR") + '</span></div>';
+  }
+  html += '<div class="total-row"><span>' + t("الإجمالي","Total") + '</span><span>' + totalNum.toFixed(2) + ' ' + t("ر.س","SAR") + '</span></div>';
+
+  if (isInvoice) {
+    html += '<div class="center" style="margin-top:10px"><span class="badge">' + t("✅ مدفوع مسبقاً","✅ Prepaid") + '</span></div>';
+  }
+
+  html += '<div class="footer">' + t("شكراً لطلبك من Chopped 🙏","Thank you for ordering from Chopped 🙏") + '</div>';
+  html += '</body></html>';
+
+  var w = window.open("", "_blank", "width=420,height=640");
+  if (!w) { showToast(t("اسمح بالنوافذ المنبثقة للطباعة","Allow popups to print"),"err"); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 300);
 }
 
 // ---- MANAGER ----
@@ -427,9 +611,11 @@ function renderManager() {
     var o = active[i];
     var sc = {new:"s-new", confirmed:"s-confirmed", cooking:"s-cooking"}[o.status] || "";
     var sl = {new:t("جديد","New"), confirmed:t("مؤكد","Confirmed"), cooking:t("قيد التحضير","Cooking")}[o.status] || o.status;
-    html += '<div class="card"><div class="order-header"><div>';
+    var isFresh = latestNewIds.indexOf(o._raw_id) !== -1;
+    html += '<div class="card' + (isFresh ? ' flash-new' : '') + '"><div class="order-header"><div>';
     html += '<div class="order-id">' + esc(o.id) + '</div>';
-    html += '<div class="order-customer">' + esc(o.customer) + '</div>';
+    html += '<div class="order-customer">' + esc(o.customer) + (o.phone ? ' 📱' + esc(o.phone) : '') + '</div>';
+    if (o.compound || o.villa) html += '<div class="order-customer">📍 ' + esc(o.compound||"") + (o.villa ? ' — ' + esc(o.villa) : '') + '</div>';
     html += '<div class="order-time">' + esc(o.timestamp || "") + '</div></div>';
     html += '<div style="text-align:end"><span class="status-badge ' + sc + '">' + sl + '</span>';
     html += '<div class="order-total">' + o.total + ' ' + t("ر.س","SAR") + '</div></div></div>';
@@ -449,6 +635,8 @@ function renderManager() {
     } else if (o.status === "cooking") {
       html += '<div class="cooking-label">🔥 ' + t("قيد التحضير...","Cooking...") + '</div>';
     }
+    html += '<button class="btn-confirm" style="background:#555" onclick="printReceipt(\'' + o.id + '\')">🖨️ ' + t("وصل","Receipt") + '</button>';
+    html += '<button class="btn-confirm" style="background:#2C1810" onclick="printInvoice(\'' + o.id + '\')">🧾 ' + t("فاتورة","Invoice") + '</button>';
     html += '</div></div>';
   }
   return html;
@@ -463,15 +651,21 @@ function renderKitchen() {
   if (cooking.length === 0) { html += '<div class="empty">🍽️ ' + t("لا توجد طلبات للتحضير","No orders to prepare") + '</div>'; return html; }
   for (var i = 0; i < cooking.length; i++) {
     var o = cooking[i];
-    html += '<div class="kitchen-card">';
+    var isFreshK = latestNewIds.indexOf(o._raw_id) !== -1;
+    html += '<div class="kitchen-card' + (isFreshK ? ' flash-new' : '') + '">';
     html += '<div class="kitchen-id">' + esc(o.id) + '</div>';
-    html += '<div class="kitchen-name">' + esc(o.customer) + '</div>';
+    html += '<div class="kitchen-name">' + esc(o.customer) + (o.phone ? ' 📱' + esc(o.phone) : '') + '</div>';
+    if (o.compound || o.villa) html += '<div class="kitchen-name" style="font-size:12px;color:#888">📍 ' + esc(o.compound||"") + (o.villa ? ' — ' + esc(o.villa) : '') + '</div>';
     if (Array.isArray(o.items)) {
       for (var j = 0; j < o.items.length; j++) {
         var it = o.items[j];
         html += '<div class="kitchen-item"><span>' + esc(it.name) + '</span><span class="kitchen-qty">× ' + it.qty + '</span></div>';
       }
     }
+    html += '<div style="display:flex;gap:6px;margin-top:8px">';
+    html += '<button class="btn-confirm" style="background:#555;flex:1" onclick="printReceipt(\'' + o.id + '\')">🖨️ ' + t("وصل","Receipt") + '</button>';
+    html += '<button class="btn-confirm" style="background:#2C1810;flex:1" onclick="printInvoice(\'' + o.id + '\')">🧾 ' + t("فاتورة","Invoice") + '</button>';
+    html += '</div>';
     html += '<button class="btn-done" onclick="updateStatus(\'' + o.id + '\',\'done\')">✅ ' + t("تم التحضير","Done") + '</button></div>';
   }
   return html;

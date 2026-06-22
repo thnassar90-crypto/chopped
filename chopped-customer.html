@@ -2,11 +2,19 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Chopped — اطلب الآن</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Chopped — طلبات الكمباوند</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="theme-color" content="#5C2D0E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chopped">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f5f0e8;color:#2C1810}
+html,body{overscroll-behavior:none;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f5f0e8;color:#2C1810;overflow-x:hidden}
 button,input,select{font-family:inherit;cursor:pointer}
 input{cursor:text}
 ::-webkit-scrollbar{height:4px;width:4px}
@@ -21,7 +29,7 @@ input{cursor:text}
 .card{background:#fff;border:1px solid #e8e0d0;border-radius:12px;padding:14px;margin-bottom:10px}
 .alert{background:#FFF3CD;border:1px solid #FFC107;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#856404}
 #search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e8e0d0;border-radius:12px;padding:10px 14px;margin-bottom:12px}
-#search-input{border:none;background:transparent;font-size:14px;outline:none;flex:1;color:#2C1810}
+#search-input{border:none;background:transparent;font-size:16px;outline:none;flex:1;color:#2C1810}
 #clear-search{border:none;background:none;font-size:20px;color:#8B7355;line-height:1}
 #cat-row{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px}
 .cat-pill{padding:6px 12px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid #d4c4a0;background:#fff;color:#5C2D0E;white-space:nowrap;flex-shrink:0;transition:all 0.15s}
@@ -34,13 +42,26 @@ input{cursor:text}
 .qty-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .qty-btn{width:30px;height:30px;border-radius:50%;border:1px solid #d4c4a0;background:#f5f0e8;color:#2C1810;font-size:18px;line-height:1}
 .qty-num{font-size:15px;font-weight:700;min-width:20px;text-align:center}
-#cart-bar{position:sticky;bottom:0;background:#5C2D0E;padding:14px 16px;display:none;align-items:center;justify-content:space-between;border-radius:16px 16px 0 0;margin:0 -14px -14px}
+#cart-bar{position:sticky;bottom:0;background:#5C2D0E;padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:none;flex-direction:column;gap:10px;border-radius:16px 16px 0 0;margin:0 -14px calc(-14px - env(safe-area-inset-bottom))}
 #cart-bar.visible{display:flex}
-#cart-count{color:rgba(255,255,255,0.7);font-size:12px}
-#cart-total{color:#fff;font-size:18px;font-weight:700}
-#wa-btn{background:#25D366;color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:14px;font-weight:600}
+#cart-summary-row{display:flex;align-items:baseline;justify-content:center;gap:8px}
+#cart-count{color:rgba(255,255,255,0.7);font-size:12px;white-space:nowrap}
+#cart-total{color:#fff;font-size:17px;font-weight:700;white-space:nowrap}
+#wa-btn{background:#25D366;color:#fff;border:none;border-radius:12px;padding:12px 18px;font-size:15px;font-weight:600;width:100%}
+#cart-summary-row{cursor:pointer}
+#summary-sheet{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:flex-end;z-index:50}
+#summary-sheet.visible{display:flex}
+#summary-sheet-inner{background:#fff;width:100%;max-height:50vh;border-radius:18px 18px 0 0;padding:14px;overflow-y:auto;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.summary-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.summary-title{font-size:16px;font-weight:700;color:#2C1810}
+.summary-close{background:#f0e9dd;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;color:#5C2D0E}
+.summary-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f0e9dd}
+.summary-item-name{font-size:14px;color:#2C1810;flex:1}
+.summary-item-qty{display:flex;align-items:center;gap:8px;margin:0 10px}
+.summary-item-price{font-size:13px;color:#8B7355;min-width:70px;text-align:left}
+.summary-total-row{display:flex;justify-content:space-between;align-items:center;padding-top:12px;margin-top:6px;border-top:2px solid #5C2D0E;font-size:16px;font-weight:700;color:#2C1810}
 .input-label{font-size:12px;color:#8B7355;margin-bottom:6px}
-.text-input{width:100%;padding:10px 12px;border:1px solid #d4c4a0;border-radius:8px;font-size:14px;background:#faf7f2;outline:none}
+.text-input{width:100%;padding:10px 12px;border:1px solid #d4c4a0;border-radius:8px;font-size:16px;background:#faf7f2;outline:none;box-sizing:border-box}
 .text-input:focus{border-color:#5C2D0E}
 .empty{text-align:center;padding:40px 20px;color:#8B7355;font-size:14px}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:12px;font-weight:600;font-size:14px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.25);white-space:nowrap;display:none;pointer-events:none}
@@ -53,8 +74,8 @@ input{cursor:text}
 
 <div id="header">
   <div>
-    <h1>🥩 Chopped — شوبد</h1>
-    <p>اطلب الآن • Order Now</p>
+    <h1 id="page-title">🥩 Chopped — طلبات الكمباوند</h1>
+    <p id="page-subtitle">اطلب الآن • Order Now</p>
   </div>
   <div id="lang-toggle">
     <button class="lang-btn active" onclick="setLang('ar')">ع</button>
@@ -65,11 +86,15 @@ input{cursor:text}
 <div id="content"></div>
 
 <div id="cart-bar">
-  <div>
+  <div id="cart-summary-row" onclick="openSummary()">
     <div id="cart-count">0 صنف</div>
     <div id="cart-total">0.00 ر.س</div>
   </div>
   <button id="wa-btn" onclick="sendOrder()">📱 إرسال الطلب</button>
+</div>
+
+<div id="summary-sheet" onclick="if(event.target===this)closeSummary()">
+  <div id="summary-sheet-inner"></div>
 </div>
 
 <div id="toast"></div>
@@ -125,7 +150,38 @@ var MENU = [
   {id:264,name:"Box Chopped Burger 100g x 4 Pcs",price:109.00,cat:"burgerbox"},{id:265,name:"Box Chopped Burger 100g x 8 Pcs",price:158.00,cat:"burgerbox"},{id:266,name:"Box Chopped Burger 180g x 4 Pcs",price:136.00,cat:"burgerbox"},{id:267,name:"Box Chopped Burger 180g x 8 Pcs",price:234.00,cat:"burgerbox"},{id:268,name:"Box Chef Burger 100g x 4 Pcs",price:104.00,cat:"burgerbox"},{id:269,name:"Box Chef Burger 100g x 8 Pcs",price:149.00,cat:"burgerbox"},{id:270,name:"Box Extra Lean Burger 100g x 4 Pcs",price:109.00,cat:"burgerbox"},{id:271,name:"Box Extra Lean Burger 100g x 8 Pcs",price:158.00,cat:"burgerbox"},{id:272,name:"Box Extra Lean Burger 180g x 4 Pcs",price:136.00,cat:"burgerbox"},{id:273,name:"Box Extra Lean Burger 180g x 8 Pcs",price:234.00,cat:"burgerbox"},{id:274,name:"Box Grass Fed Burger 100g x 4 Pcs",price:104.00,cat:"burgerbox"},{id:275,name:"Box Grass Fed Burger 100g x 8 Pcs",price:150.00,cat:"burgerbox"},{id:276,name:"Box Grass Fed Burger 180g x 4 Pcs",price:131.00,cat:"burgerbox"},{id:277,name:"Box Grass Fed Burger 180g x 8 Pcs",price:225.00,cat:"burgerbox"},{id:278,name:"Box Wagyu Beef Burger 100g x 4 Pcs",price:138.00,cat:"burgerbox"},{id:279,name:"Box Wagyu Beef Burger 100g x 8 Pcs",price:215.00,cat:"burgerbox"},{id:280,name:"Box Wagyu Beef Burger 180g x 4 Pcs",price:210.00,cat:"burgerbox"},{id:281,name:"Box Wagyu Beef Burger 180g x 8 Pcs",price:375.00,cat:"burgerbox"},{id:282,name:"Box Chicken Burger 100gm x 4 pcs",price:95.00,cat:"burgerbox"},{id:283,name:"Box Chicken Burger 100gm x 8 pcs",price:115.00,cat:"burgerbox"}
 ];
 
-var lang="ar", cart={}, activeCat="all", searchText="", customerName="", customerPhone="", orderCounter=1;
+var lang="ar", cart={}, activeCat="all", searchText="", customerName="", customerPhone="", customerCompound="", customerVilla="", orderCounter=1;
+
+var COMPOUNDS = [
+  {ar:"وادي قرطبة", en:"Wadi Qurtubah"},
+  {ar:"الهدا", en:"Alhada"},
+  {ar:"البستان", en:"Al-Bustan"},
+  {ar:"الحمراء", en:"Al-Hamra"},
+  {ar:"أريزونا", en:"Arizona"},
+  {ar:"النخلة", en:"Al-Naklah"},
+  {ar:"أشبيليا", en:"Ishbiliya"},
+  {ar:"فلو غرناطة", en:"Flow Granada"},
+  {ar:"فلو النرجس", en:"Flow Narjis"},
+  {ar:"المملكة", en:"Kingdom"},
+  {ar:"كاليفورنيا", en:"California"},
+  {ar:"مارفيلا", en:"Marvela"},
+  {ar:"سيدرا", en:"Sedra"},
+  {ar:"اليمامة", en:"Yamamah"},
+  {ar:"السفارات", en:"DQ"},
+  {ar:"انتارا", en:"Antara"},
+  {ar:"اندورا", en:"Andora"},
+  {ar:"كابسارك", en:"KAPSARC"},
+  {ar:"الريم", en:"Al-Reem"},
+  {ar:"لا بالما", en:"La Palma"},
+  {ar:"حطين", en:"Hittin"},
+  {ar:"الزور نرجس", en:"Azure Narjis"},
+  {ar:"سلوى", en:"Salwa"},
+  {ar:"عيد", en:"Eid"},
+  {ar:"سدر", en:"Seder"},
+  {ar:"رانكو", en:"Ranco Village"},
+  {ar:"TAIC", en:"TAIC"},
+  {ar:"أريبيان هوم", en:"Arabian Home"}
+];
 
 function t(a,e){return lang==="ar"?a:e;}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -134,6 +190,37 @@ function cartCount(){return Object.values(cart).reduce(function(s,q){return s+q;
 function cartTotal(){return Object.entries(cart).reduce(function(s,e){var m=MENU.find(function(x){return x.id==e[0];});return s+(m?m.price*e[1]:0);},0);}
 function addItem(id){cart[id]=(cart[id]||0)+1;render();}
 function remItem(id){if(cart[id]>1)cart[id]--;else delete cart[id];render();}
+
+function openSummary(){
+  renderSummary();
+  document.getElementById("summary-sheet").classList.add("visible");
+}
+function closeSummary(){
+  document.getElementById("summary-sheet").classList.remove("visible");
+}
+function renderSummary(){
+  var inner = document.getElementById("summary-sheet-inner");
+  var entries = Object.entries(cart);
+  var html = '<div class="summary-header"><div class="summary-title">' + t("ملخص طلبك","Your Order") + '</div><button class="summary-close" onclick="closeSummary()">✕</button></div>';
+  if(entries.length===0){
+    html += '<div style="text-align:center;color:#8B7355;padding:20px 0">' + t("السلة فارغة","Cart is empty") + '</div>';
+  } else {
+    entries.forEach(function(e){
+      var m = MENU.find(function(x){return x.id==e[0];});
+      if(!m) return;
+      var qty = e[1];
+      html += '<div class="summary-item">';
+      html += '<div class="summary-item-name">' + esc(m.name) + '</div>';
+      html += '<div class="summary-item-qty"><button onclick="remItem(\''+m.id+'\');renderSummary()" style="background:#f0e9dd;border:none;border-radius:50%;width:26px;height:26px;font-size:14px;color:#5C2D0E">−</button>';
+      html += '<span class="qty-num">'+qty+'</span>';
+      html += '<button onclick="addItem(\''+m.id+'\');renderSummary()" style="background:#5C2D0E;border:none;border-radius:50%;width:26px;height:26px;font-size:14px;color:#fff">+</button></div>';
+      html += '<div class="summary-item-price">' + (m.price*qty).toFixed(2) + ' ' + t("ر.س","SAR") + '</div>';
+      html += '</div>';
+    });
+    html += '<div class="summary-total-row"><span>' + t("الإجمالي","Total") + '</span><span>' + cartTotal().toFixed(2) + ' ' + t("ر.س","SAR") + '</span></div>';
+  }
+  inner.innerHTML = html;
+}
 
 function showToast(msg,type){
   var el=document.getElementById("toast");
@@ -148,6 +235,8 @@ function setLang(l){
   });
   document.documentElement.dir=l==="ar"?"rtl":"ltr";
   document.documentElement.lang=l;
+  document.getElementById("page-title").textContent = "🥩 " + t("Chopped — طلبات الكمباوند","Chopped — Compound Orders");
+  document.title = t("Chopped — طلبات الكمباوند","Chopped — Compound Orders");
   render();
 }
 
@@ -215,6 +304,7 @@ function renderMenuOnly(){
 
 function render(){
   updateCartBar();
+  if(document.getElementById("summary-sheet").classList.contains("visible")) renderSummary();
   var items=MENU.filter(function(m){
     return (activeCat==="all"||m.cat===activeCat) && m.name.toLowerCase().indexOf(searchText.toLowerCase())>=0;
   });
@@ -224,6 +314,18 @@ function render(){
   html+='<input class="text-input" id="cname" placeholder="'+t("مثال: محمد","e.g. Mohammed")+'" value="'+esc(customerName)+'" oninput="customerName=this.value"></div>';
   html+='<div class="card" style="margin-bottom:12px"><div class="input-label">'+t("رقم جوالك *","Your phone *")+'</div>';
   html+='<input class="text-input" id="cphone" type="tel" placeholder="'+t("مثال: 0501234567","e.g. 0501234567")+'" value="'+esc(customerPhone)+'" oninput="customerPhone=this.value"></div>';
+  html+='<div class="card" style="margin-bottom:12px"><div class="input-label">'+t("الكمباوند *","Compound *")+'</div>';
+  html+='<select class="text-input" id="ccompound" onchange="customerCompound=this.value">';
+  html+='<option value="">'+t("اختر الكمباوند","Select compound")+'</option>';
+  for(var ci=0; ci<COMPOUNDS.length; ci++){
+    var cmp = COMPOUNDS[ci];
+    var label = t(cmp.ar, cmp.en);
+    var selected = customerCompound===label?' selected':'';
+    html+='<option value="'+esc(label)+'"'+selected+'>'+esc(label)+'</option>';
+  }
+  html+='</select></div>';
+  html+='<div class="card" style="margin-bottom:12px"><div class="input-label">'+t("رقم الفيلا/الشقة *","Villa/Apt No. *")+'</div>';
+  html+='<input class="text-input" id="cvilla" placeholder="'+t("مثال: فيلا 12 / شقة 4","e.g. Villa 12 / Apt 4")+'" value="'+esc(customerVilla)+'" oninput="customerVilla=this.value"></div>';
   html+='<div id="search-box"><span>🔍</span><input id="search-input" placeholder="'+t("ابحث...","Search...")+'" value="'+esc(searchText)+'" oninput="onSearch(this.value)">';
   if(searchText) html+='<button id="clear-search" onclick="clearSearch()">×</button>';
   html+='</div><div id="cat-row"><button class="cat-pill'+(activeCat==="all"?" active":"")+'" onclick="activeCat=\'all\';render()">'+t("الكل","All")+'</button>';
@@ -250,6 +352,12 @@ async function sendOrder(){
   var phone=(document.getElementById("cphone")||{}).value||customerPhone;
   customerPhone=phone.trim();
   if(!customerPhone) return showToast(t("أدخل رقم جوالك","Enter your phone number"),"err");
+  var compound=(document.getElementById("ccompound")||{}).value||customerCompound;
+  customerCompound=compound;
+  if(!customerCompound) return showToast(t("اختر الكمباوند","Select your compound"),"err");
+  var villa=(document.getElementById("cvilla")||{}).value||customerVilla;
+  customerVilla=villa.trim();
+  if(!customerVilla) return showToast(t("أدخل رقم الفيلا/الشقة","Enter villa/apt number"),"err");
   var items=Object.entries(cart).map(function(e){var m=MENU.find(function(x){return x.id==e[0];});return {id:+e[0],name:m?m.name:"",qty:e[1],price:m?m.price:0};});
   var total=cartTotal().toFixed(2);
   var orderId="#"+String(orderCounter++).padStart(3,"0");
@@ -258,6 +366,8 @@ async function sendOrder(){
       var inserted = await supabaseInsert("orders", {
         customer: customerName,
         phone: customerPhone,
+        compound: customerCompound,
+        villa: customerVilla,
         items: items,
         total: parseFloat(total),
         status: "new"
@@ -266,9 +376,9 @@ async function sendOrder(){
     }catch(e){ console.error("Supabase error:", e); }
   }
   var lines=items.map(function(i){return "• "+i.name+" x"+i.qty+" — "+(i.price*i.qty).toFixed(2)+" SAR";}).join("\n");
-  var msg="🛒 "+t("طلب جديد","New Order")+" - Chopped\n"+t("العميل:","Customer:")+customerName+" | "+t("جوال:","Phone:")+customerPhone+"\n\n"+lines+"\n\n"+t("الإجمالي:","Total:")+total+" SAR\n"+t("رقم الطلب:","Order:")+orderId;
+  var msg="🛒 "+t("طلب جديد","New Order")+" - Chopped\n"+t("العميل:","Customer:")+customerName+" | "+t("جوال:","Phone:")+customerPhone+"\n"+t("الكمباوند:","Compound:")+customerCompound+" | "+t("فيلا/شقة:","Villa/Apt:")+customerVilla+"\n\n"+lines+"\n\n"+t("الإجمالي:","Total:")+total+" SAR\n"+t("رقم الطلب:","Order:")+orderId;
   window.open("https://wa.me/"+WA_NUMBER+"?text="+encodeURIComponent(msg),"_blank");
-  cart={}; customerName=""; customerPhone="";
+  cart={}; customerName=""; customerPhone=""; customerCompound=""; customerVilla="";
   showToast(t("تم إرسال الطلب ","Order sent ")+orderId);
   render();
 }
