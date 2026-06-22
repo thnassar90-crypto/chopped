@@ -225,6 +225,7 @@ var latestNewIds = [];
 var audioCtx = null;
 var alertTimer = null;
 var ringingIds = [];
+var openCompounds = {};
 
 function playBeep() {
   try {
@@ -643,6 +644,11 @@ function renderManager() {
 }
 
 // ---- KITCHEN ----
+function toggleCompound(name) {
+  openCompounds[name] = !openCompounds[name];
+  render();
+}
+
 function renderKitchen() {
   var cooking = orders.filter(function(o){ return o.status === "cooking"; });
   var html = '<div class="section-row">';
@@ -659,35 +665,50 @@ function renderKitchen() {
     groups[key].push(o);
   }
 
+  // افتح كل الكمباوندات افتراضياً أول مرة
   var compoundNames = Object.keys(groups).sort();
+  for (var ci = 0; ci < compoundNames.length; ci++) {
+    if (openCompounds[compoundNames[ci]] === undefined) openCompounds[compoundNames[ci]] = true;
+  }
+
   for (var ci = 0; ci < compoundNames.length; ci++) {
     var compound = compoundNames[ci];
     var list = groups[compound];
-    html += '<div style="background:#3D1F0A;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">';
-    html += '<div style="color:#fff;font-weight:700;font-size:15px">📍 ' + esc(compound) + '</div>';
-    html += '<div style="background:#C8754A;color:#fff;border-radius:20px;padding:2px 10px;font-size:13px">' + list.length + ' ' + t("طلب","order") + '</div>';
-    html += '</div>';
+    var isOpen = openCompounds[compound];
+    var hasFresh = list.some(function(o){ return latestNewIds.indexOf(o._raw_id) !== -1; });
 
-    for (var j = 0; j < list.length; j++) {
-      var o = list[j];
-      var isFreshK = latestNewIds.indexOf(o._raw_id) !== -1;
-      html += '<div class="kitchen-card' + (isFreshK ? ' flash-new' : '') + '" style="margin-right:12px">';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
-      html += '<div class="kitchen-id">' + esc(o.id) + '</div>';
-      if (o.villa) html += '<div style="font-size:12px;color:#C8754A;font-weight:600">🏠 ' + esc(o.villa) + '</div>';
-      html += '</div>';
-      html += '<div class="kitchen-name">' + esc(o.customer) + (o.phone ? ' · 📱' + esc(o.phone) : '') + '</div>';
-      if (Array.isArray(o.items)) {
-        for (var k = 0; k < o.items.length; k++) {
-          var it = o.items[k];
-          html += '<div class="kitchen-item"><span>' + esc(it.name) + '</span><span class="kitchen-qty">× ' + it.qty + '</span></div>';
+    // هيدر الفولدر
+    html += '<div onclick="toggleCompound(\'' + compound.replace(/'/g,"\\'") + '\')" style="background:#3D1F0A;border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none' + (hasFresh ? ';box-shadow:0 0 0 2px #C8754A' : '') + '">';
+    html += '<div style="color:#fff;font-weight:700;font-size:15px">📍 ' + esc(compound) + (hasFresh ? ' 🔴' : '') + '</div>';
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    html += '<div style="background:#C8754A;color:#fff;border-radius:20px;padding:2px 10px;font-size:13px">' + list.length + ' ' + t("طلب","order") + '</div>';
+    html += '<div style="color:#fff;font-size:18px">' + (isOpen ? '▲' : '▼') + '</div>';
+    html += '</div></div>';
+
+    // محتوى الفولدر
+    if (isOpen) {
+      for (var j = 0; j < list.length; j++) {
+        var o = list[j];
+        var isFreshK = latestNewIds.indexOf(o._raw_id) !== -1;
+        html += '<div class="kitchen-card' + (isFreshK ? ' flash-new' : '') + '" style="margin-right:14px;margin-top:-2px;border-radius:0 0 10px 10px">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+        html += '<div class="kitchen-id">' + esc(o.id) + '</div>';
+        if (o.villa) html += '<div style="font-size:12px;color:#C8754A;font-weight:600">🏠 ' + esc(o.villa) + '</div>';
+        html += '</div>';
+        html += '<div class="kitchen-name">' + esc(o.customer) + (o.phone ? ' · 📱' + esc(o.phone) : '') + '</div>';
+        if (Array.isArray(o.items)) {
+          for (var k = 0; k < o.items.length; k++) {
+            var it = o.items[k];
+            html += '<div class="kitchen-item"><span>' + esc(it.name) + '</span><span class="kitchen-qty">× ' + it.qty + '</span></div>';
+          }
         }
+        html += '<div style="display:flex;gap:6px;margin-top:8px">';
+        html += '<button class="btn-confirm" style="background:#555;flex:1" onclick="printReceipt(\'' + o.id + '\')">🖨️ ' + t("وصل","Receipt") + '</button>';
+        html += '<button class="btn-confirm" style="background:#2C1810;flex:1" onclick="printInvoice(\'' + o.id + '\')">🧾 ' + t("فاتورة","Invoice") + '</button>';
+        html += '</div>';
+        html += '<button class="btn-done" onclick="updateStatus(\'' + o.id + '\',\'done\')">✅ ' + t("تم التحضير","Done") + '</button></div>';
       }
-      html += '<div style="display:flex;gap:6px;margin-top:8px">';
-      html += '<button class="btn-confirm" style="background:#555;flex:1" onclick="printReceipt(\'' + o.id + '\')">🖨️ ' + t("وصل","Receipt") + '</button>';
-      html += '<button class="btn-confirm" style="background:#2C1810;flex:1" onclick="printInvoice(\'' + o.id + '\')">🧾 ' + t("فاتورة","Invoice") + '</button>';
-      html += '</div>';
-      html += '<button class="btn-done" onclick="updateStatus(\'' + o.id + '\',\'done\')">✅ ' + t("تم التحضير","Done") + '</button></div>';
+      html += '<div style="margin-bottom:10px"></div>';
     }
   }
   return html;
