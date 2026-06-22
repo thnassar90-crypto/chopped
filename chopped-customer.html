@@ -320,8 +320,8 @@ function render(){
   for(var ci=0; ci<COMPOUNDS.length; ci++){
     var cmp = COMPOUNDS[ci];
     var label = t(cmp.ar, cmp.en);
-    var selected = customerCompound===label?' selected':'';
-    html+='<option value="'+esc(label)+'"'+selected+'>'+esc(label)+'</option>';
+    var selected = customerCompound===cmp.en?' selected':'';
+    html+='<option value="'+esc(cmp.en)+'"'+selected+'>'+esc(label)+'</option>';
   }
   html+='</select></div>';
   html+='<div class="card" style="margin-bottom:12px"><div class="input-label">'+t("رقم الفيلا/الشقة *","Villa/Apt No. *")+'</div>';
