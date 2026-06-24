@@ -14,6 +14,18 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{overscroll-behavior:none;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+#access-screen{position:fixed;inset:0;background:#f5f0e8;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px}
+#access-screen.hidden{display:none}
+.access-logo{font-size:60px;margin-bottom:12px}
+.access-title{font-size:22px;font-weight:700;color:#2C1810;margin-bottom:6px}
+.access-sub{font-size:14px;color:#8B7355;margin-bottom:32px;text-align:center}
+.access-box{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px;box-shadow:0 4px 20px rgba(92,45,14,0.1)}
+.access-label{font-size:13px;color:#8B7355;margin-bottom:8px}
+.access-input{width:100%;padding:14px;border:2px solid #d4c4a0;border-radius:10px;font-size:22px;text-align:center;letter-spacing:6px;background:#faf7f2;outline:none;box-sizing:border-box}
+.access-input:focus{border-color:#5C2D0E}
+.access-btn{width:100%;padding:14px;background:#5C2D0E;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;margin-top:14px;cursor:pointer}
+.access-btn:active{background:#3D1F0A}
+.access-error{color:#dc2626;font-size:13px;text-align:center;margin-top:10px;min-height:20px}
 body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f5f0e8;color:#2C1810;overflow-x:hidden}
 button,input,select{font-family:inherit;cursor:pointer}
 input{cursor:text}
@@ -71,6 +83,18 @@ input{cursor:text}
 </style>
 </head>
 <body>
+
+<div id="access-screen">
+  <div class="access-logo">🥩</div>
+  <div class="access-title">Chopped</div>
+  <div class="access-sub" id="access-sub-text">أدخل رمز الدخول الخاص بكمباوندك<br>Enter your compound access code</div>
+  <div class="access-box">
+    <div class="access-label" id="access-label-text">رمز الدخول / Access Code</div>
+    <input class="access-input" id="access-pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
+    <button class="access-btn" onclick="checkPin()">دخول / Enter</button>
+    <div class="access-error" id="access-error"></div>
+  </div>
+</div>
 
 <div id="header">
   <div>
@@ -383,6 +407,39 @@ async function sendOrder(){
   render();
 }
 
+// ── نظام الدخول ──
+var ACCESS_PIN = "2025"; // غيّر هذا الرمز حسب رغبتك
+var ACCESS_KEY = "chopped_access_granted";
+
+function checkPin() {
+  var input = document.getElementById("access-pin-input").value.trim();
+  var errEl = document.getElementById("access-error");
+  if (input === ACCESS_PIN) {
+    localStorage.setItem(ACCESS_KEY, "1");
+    document.getElementById("access-screen").classList.add("hidden");
+    errEl.textContent = "";
+  } else {
+    errEl.textContent = "رمز غير صحيح — Wrong code";
+    document.getElementById("access-pin-input").value = "";
+    document.getElementById("access-pin-input").focus();
+  }
+}
+
+function initAccess() {
+  try {
+    if (localStorage.getItem(ACCESS_KEY) === "1") {
+      document.getElementById("access-screen").classList.add("hidden");
+    } else {
+      setTimeout(function(){
+        document.getElementById("access-pin-input").focus();
+      }, 300);
+    }
+  } catch(e) {
+    document.getElementById("access-screen").classList.add("hidden");
+  }
+}
+
+initAccess();
 render();
 </script>
 </body>
