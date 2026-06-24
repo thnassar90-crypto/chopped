@@ -210,29 +210,6 @@ var MENU_DATA = [
 
 var lang = "ar";
 var currentRole = null;
-
-var COMPOUNDS = [
-  {ar:"وادي قرطبة",en:"Wadi Qurtubah"},{ar:"الهدا",en:"Alhada"},{ar:"البستان",en:"Al-Bustan"},
-  {ar:"الحمراء",en:"Al-Hamra"},{ar:"أريزونا",en:"Arizona"},{ar:"النخلة",en:"Al-Naklah"},
-  {ar:"أشبيليا",en:"Ishbiliya"},{ar:"فلو غرناطة",en:"Flow Granada"},{ar:"فلو النرجس",en:"Flow Narjis"},
-  {ar:"المملكة",en:"Kingdom"},{ar:"كاليفونيا",en:"California"},{ar:"مارفيلا",en:"Marvela"},
-  {ar:"سيدرا",en:"Sedra"},{ar:"اليمامة",en:"Yamamah"},{ar:"السفارات",en:"DQ"},
-  {ar:"انتارا",en:"Antara"},{ar:"اندورا",en:"Andora"},{ar:"كابسرك",en:"KAPSARC"},
-  {ar:"الريم",en:"Al-Reem"},{ar:"لا بالما",en:"La Palma"},{ar:"حطين",en:"Hittin"},
-  {ar:"الزور نرجس",en:"Azure Narjis"},{ar:"سلوى",en:"Salwa"},{ar:"عيد",en:"Eid"},
-  {ar:"سدر",en:"Seder"},{ar:"رانكو",en:"Ranco"},{ar:"تايك",en:"TAIC"},
-  {ar:"أريبيان هوم كمباوند",en:"Arabian Home"}
-];
-
-function translateCompound(name) {
-  if (!name) return name;
-  for (var i = 0; i < COMPOUNDS.length; i++) {
-    if (COMPOUNDS[i].en === name || COMPOUNDS[i].ar === name) {
-      return lang === "ar" ? COMPOUNDS[i].ar : COMPOUNDS[i].en;
-    }
-  }
-  return name; // إذا ما لقيناه نرجعه كما هو
-}
 var currentTab = null;
 var selectedRole = null;
 var orders = [];
@@ -592,7 +569,7 @@ function printDoc(o, kind){
 
   html += '<div class="row"><span>' + t("العميل","Customer") + '</span><strong>' + esc(o.customer) + '</strong></div>';
   if (o.phone) html += '<div class="row"><span>' + t("الجوال","Phone") + '</span><strong>' + esc(o.phone) + '</strong></div>';
-  if (o.compound) html += '<div class="row"><span>' + t("الكمباوند","Compound") + '</span><strong>' + esc(translateCompound(o.compound)) + '</strong></div>';
+  if (o.compound) html += '<div class="row"><span>' + t("الكمباوند","Compound") + '</span><strong>' + esc(o.compound) + '</strong></div>';
   if (o.villa) html += '<div class="row"><span>' + t("فيلا/شقة","Villa/Apt") + '</span><strong>' + esc(o.villa) + '</strong></div>';
   html += '<hr>';
 
@@ -639,7 +616,7 @@ function renderManager() {
     html += '<div class="card' + (isFresh ? ' flash-new' : '') + '"><div class="order-header"><div>';
     html += '<div class="order-id">' + esc(o.id) + '</div>';
     html += '<div class="order-customer">' + esc(o.customer) + (o.phone ? ' 📱' + esc(o.phone) : '') + '</div>';
-    if (o.compound || o.villa) html += '<div class="order-customer">📍 ' + esc(translateCompound(o.compound)||"") + (o.villa ? ' — ' + esc(o.villa) : '') + '</div>';
+    if (o.compound || o.villa) html += '<div class="order-customer">📍 ' + esc(o.compound||"") + (o.villa ? ' — ' + esc(o.villa) : '') + '</div>';
     html += '<div class="order-time">' + esc(o.timestamp || "") + '</div></div>';
     html += '<div style="text-align:end"><span class="status-badge ' + sc + '">' + sl + '</span>';
     html += '<div class="order-total">' + o.total + ' ' + t("ر.س","SAR") + '</div></div></div>';
